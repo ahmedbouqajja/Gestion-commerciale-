@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import { env, hasDatabase } from "./config/env.js";
+import { env, hasDatabase, usingInsecureJwtSecret } from "./config/env.js";
 import { DEMO_USER } from "./services/authService.js";
 import authRoutes from "./routes/auth.js";
 import intelligenceRoutes from "./routes/intelligence.js";
@@ -35,6 +35,12 @@ app.use("/api", intelligenceRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
+
+// Fail fast: never run in production on the built-in insecure JWT secret.
+if (env.nodeEnv === "production" && usingInsecureJwtSecret) {
+  console.error("FATAL: JWT_SECRET must be set to a strong secret in production.");
+  process.exit(1);
+}
 
 if (env.nodeEnv !== "test") {
   app.listen(env.port, () => {

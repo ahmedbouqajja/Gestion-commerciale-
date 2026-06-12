@@ -10,7 +10,13 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
   if (err instanceof ZodError) {
     return res.status(400).json({ error: "Données invalides.", details: err.flatten() });
   }
-  const message = err instanceof Error ? err.message : "Erreur interne du serveur.";
   if (process.env.NODE_ENV !== "test") console.error("[error]", err);
+  // Log details server-side, but never leak internals to clients in production.
+  const message =
+    process.env.NODE_ENV === "production"
+      ? "Erreur interne du serveur."
+      : err instanceof Error
+        ? err.message
+        : "Erreur interne du serveur.";
   res.status(500).json({ error: message });
 }
