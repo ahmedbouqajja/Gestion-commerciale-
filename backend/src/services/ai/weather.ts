@@ -1,4 +1,9 @@
 import type { WeatherForecast, WeatherTag } from "../../types/domain.js";
+import { keyedTTLCache } from "../../lib/cache.js";
+
+// Cache forecasts for 30 min, keyed per location/horizon, so a real
+// OpenWeather key is hit at most twice an hour instead of once per request.
+const forecastCache = keyedTTLCache<WeatherForecast[]>(30 * 60_000);
 
 /**
  * Weather intelligence. Uses OpenWeatherMap when OPENWEATHER_API_KEY is set,
@@ -52,6 +57,11 @@ export async function getForecast(
   days = 5,
   apiKey = process.env.OPENWEATHER_API_KEY,
 ): Promise<WeatherForecast[]> {
+  const dayKey = new Date().toISOString().slice(0, 10);
+  return forecastCache.get(`${lat},${lon},${days},${dayKey}`, () => fetchForecast(lat, lon, days, apiKey));
+}
+
+async function fetchForecast(lat: number, lon: number, days: number, apiKey?: string): Promise<WeatherForecast[]> {
   const today = new Date();
 
   if (apiKey) {

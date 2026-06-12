@@ -100,5 +100,31 @@ export function buildSaleRecords(days = 90, asOf: Date = new Date()): SaleRecord
       });
     });
   });
+
+  // Year-ago window (≈ -365 d) so "Évolution vs N-1" is meaningful instead of
+  // always +100%. Generated at ~88% of the current level → realistic YoY (~+13%).
+  const yearAgoStart = new Date(asOf.getTime() - 396 * 86_400_000);
+  STORE_SEEDS.forEach((store, si) => {
+    const storeFactor = [1, 0.8, 0.6, 0.5][si] ?? 0.5;
+    PRODUCT_SEEDS.forEach((p) => {
+      const level = (p.base + p.trend * (days - 4)) * 0.88;
+      for (let i = 0; i <= 31; i++) {
+        const date = new Date(yearAgoStart.getTime() + i * 86_400_000);
+        const weekendBoost = date.getUTCDay() === 5 || date.getUTCDay() === 6 ? 1.25 : 1;
+        const noise = 0.85 + rng(i + p.base + si) * 0.3;
+        const qty = Math.max(0, Math.round(level * storeFactor * weekendBoost * noise));
+        records.push({
+          date,
+          productSku: p.sku,
+          productName: p.name,
+          storeCode: store.code,
+          storeName: store.name,
+          quantity: qty,
+          revenue: Number((qty * p.unitPrice).toFixed(2)),
+        });
+      }
+    });
+  });
+
   return records;
 }

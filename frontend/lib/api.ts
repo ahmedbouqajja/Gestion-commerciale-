@@ -28,6 +28,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
   if (!res.ok) {
+    // Session expirée / token invalide → on nettoie et on renvoie vers la connexion.
+    if (res.status === 401 && typeof window !== "undefined" && !path.startsWith("/auth/")) {
+      clearToken();
+      window.location.href = "/login";
+    }
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error ?? `Erreur ${res.status}`);
   }
