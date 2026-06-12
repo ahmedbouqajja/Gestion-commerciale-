@@ -81,6 +81,38 @@ export async function registerTenant(input: {
   };
 }
 
+export interface UserSummary {
+  id: string;
+  email: string;
+  fullName: string;
+  role: string;
+  active: boolean;
+  lastLoginAt: Date | null;
+  createdAt: Date | null;
+}
+
+/** List the users of a tenant (the demo admin when no database is configured). */
+export async function listUsers(tenantId?: string): Promise<UserSummary[]> {
+  if (!hasDatabase || !tenantId || tenantId === DEMO_USER.tenantId) {
+    return [
+      {
+        id: DEMO_USER.userId,
+        email: DEMO_USER.email,
+        fullName: DEMO_USER.fullName,
+        role: DEMO_USER.role,
+        active: true,
+        lastLoginAt: null,
+        createdAt: null,
+      },
+    ];
+  }
+  return prisma.user.findMany({
+    where: { tenantId },
+    select: { id: true, email: true, fullName: true, role: true, active: true, lastLoginAt: true, createdAt: true },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
 function demoResult(): AuthResult {
   return {
     token: signToken({ userId: DEMO_USER.userId, tenantId: DEMO_USER.tenantId, role: DEMO_USER.role }),

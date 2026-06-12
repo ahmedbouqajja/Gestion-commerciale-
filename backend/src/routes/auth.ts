@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { login, registerTenant } from "../services/authService.js";
+import { login, registerTenant, listUsers } from "../services/authService.js";
 import { authenticate } from "../middleware/auth.js";
 
 const router = Router();
@@ -38,6 +38,14 @@ router.post("/register", async (req, res, next) => {
 
 router.get("/me", authenticate, (req, res) => {
   res.json({ auth: req.auth });
+});
+
+router.get("/users", authenticate, async (req, res, next) => {
+  try {
+    res.json({ users: await listUsers(req.auth?.tenantId) });
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;

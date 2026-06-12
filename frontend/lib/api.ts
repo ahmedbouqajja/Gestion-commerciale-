@@ -47,6 +47,7 @@ export const api = {
   recommendations: () => request<{ recommendations: Recommendation[]; weather: WeatherForecast[] }>("/recommendations"),
   products: () => request<{ products: ProductRow[] }>("/products"),
   stores: () => request<{ stores: StoreRow[] }>("/stores"),
+  users: () => request<{ users: UserRow[] }>("/auth/users"),
   forecast: (sku: string) => request<ForecastResponse>(`/forecast/${sku}`),
   assistant: (question: string) =>
     request<{ intent: string; answer: string; data?: unknown }>("/assistant", {
@@ -223,6 +224,15 @@ export interface StoreRow {
   salesRep?: string;
   route?: string;
   deliveryDays?: string[];
+}
+export interface UserRow {
+  id: string;
+  email: string;
+  fullName: string;
+  role: string;
+  active: boolean;
+  lastLoginAt: string | null;
+  createdAt: string | null;
 }
 export interface ForecastPoint {
   dayOffset: number;
