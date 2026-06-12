@@ -27,3 +27,8 @@ export const hasDatabase = Boolean(env.databaseUrl);
 
 /** True when running on the built-in insecure JWT fallback (dev/demo only). */
 export const usingInsecureJwtSecret = env.jwtSecret === INSECURE_JWT_FALLBACK;
+
+// Fail fast: never run in production on the built-in insecure JWT secret.
+if (env.nodeEnv === "production" && usingInsecureJwtSecret) {
+  throw new Error("JWT_SECRET must be set to a strong secret in production.");
+}

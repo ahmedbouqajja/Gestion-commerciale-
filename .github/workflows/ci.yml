@@ -19,6 +19,10 @@ jobs:
           node-version: 20
       - run: npm install --no-workspaces
       - run: npm run prisma:generate
+        env:
+          # prisma generate doesn't connect to the DB; a syntactically valid
+          # URL just satisfies the datasource env reference.
+          DATABASE_URL: "postgresql://user:pass@localhost:5432/db?schema=public"
       - run: npm run typecheck
       - run: npm test
 
