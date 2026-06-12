@@ -1,0 +1,38 @@
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import { env, hasDatabase } from "./config/env.js";
+import { DEMO_USER } from "./services/authService.js";
+import authRoutes from "./routes/auth.js";
+import intelligenceRoutes from "./routes/intelligence.js";
+import { notFound, errorHandler } from "./middleware/error.js";
+
+const app = express();
+
+app.use(helmet());
+app.use(cors());
+app.use(express.json({ limit: "5mb" }));
+if (env.nodeEnv !== "test") app.use(morgan("dev"));
+
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", database: hasDatabase ? "connected" : "demo-mode", time: new Date().toISOString() });
+});
+
+app.use("/api/auth", authRoutes);
+app.use("/api", intelligenceRoutes);
+
+app.use(notFound);
+app.use(errorHandler);
+
+if (env.nodeEnv !== "test") {
+  app.listen(env.port, () => {
+    console.log(`\n🚀 Smart Promo AI API → http://localhost:${env.port}`);
+    console.log(`   Base de données : ${hasDatabase ? "PostgreSQL" : "MODE DÉMO (sans DB)"}`);
+    if (!hasDatabase) {
+      console.log(`   Connexion démo  : ${DEMO_USER.email} / ${DEMO_USER.password}`);
+    }
+  });
+}
+
+export { app };

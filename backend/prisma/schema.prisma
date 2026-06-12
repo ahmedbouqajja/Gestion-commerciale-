@@ -1,0 +1,229 @@
+// Smart Promo AI — Prisma schema
+// Multi-tenant (single database, shared schema, isolation by tenantId on every row).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Tenancy & Auth ─────────────────────────────────────────────────────────
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      Plan     @default(STARTER)
+  country   String   @default("MA")
+  currency  String   @default("MAD")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users           User[]
+  stores          Store[]
+  categories      Category[]
+  products        Product[]
+  sales           Sale[]
+  stockLevels     StockLevel[]
+  promotions      Promotion[]
+  recommendations Recommendation[]
+  reports         Report[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String
+  email        String
+  passwordHash String
+  fullName     String
+  role         Role     @default(VIEWER)
+  active       Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+}
+
+// ─── Commercial domain ──────────────────────────────────────────────────────
+
+model Store {
+  id        String   @id @default(cuid())
+  tenantId  String
+  code      String
+  name      String
+  banner    String?  // Enseigne (Marjane, Carrefour, ...)
+  city      String?
+  region    String?
+  latitude  Float?
+  longitude Float?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sales       Sale[]
+  stockLevels StockLevel[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model Category {
+  id       String  @id @default(cuid())
+  tenantId String
+  name     String  // Produits frais, Laitiers, Boissons, Surgelés, Viandes, Poissons...
+  kind     String? // FRESH, DAIRY, BEVERAGE, FROZEN, MEAT, FISH, GROCERY...
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  tenantId    String
+  sku         String
+  name        String
+  categoryId  String?
+  unitPrice   Float    @default(0)
+  costPrice   Float    @default(0)
+  seasonal    Boolean  @default(false)
+  weatherTags String[] @default([]) // ["HEAT", "RAIN", "RAMADAN", ...]
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category        Category?        @relation(fields: [categoryId], references: [id])
+  sales           Sale[]
+  stockLevels     StockLevel[]
+  recommendations Recommendation[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId, categoryId])
+}
+
+model Sale {
+  id         String   @id @default(cuid())
+  tenantId   String
+  productId  String
+  storeId    String
+  date       DateTime
+  quantity   Float
+  revenue    Float
+  margin     Float    @default(0)
+  promoFlag  Boolean  @default(false)
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  store   Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, date])
+  @@index([tenantId, productId, date])
+  @@index([tenantId, storeId, date])
+}
+
+model StockLevel {
+  id           String   @id @default(cuid())
+  tenantId     String
+  productId    String
+  storeId      String
+  quantity     Float
+  reorderPoint Float    @default(0)
+  updatedAt    DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  store   Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, productId, storeId])
+  @@index([tenantId])
+}
+
+// ─── AI outputs ─────────────────────────────────────────────────────────────
+
+model Promotion {
+  id          String          @id @default(cuid())
+  tenantId    String
+  name        String
+  productSku  String?
+  type        String          // DISCOUNT, ENDCAP, TASTING, BUNDLE, STOCK_UP...
+  discountPct Float?
+  startDate   DateTime?
+  endDate     DateTime?
+  status      PromotionStatus @default(SUGGESTED)
+  source      String          @default("AI") // AI | MANUAL
+  createdAt   DateTime        @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model Recommendation {
+  id              String   @id @default(cuid())
+  tenantId        String
+  productId       String?
+  title           String
+  rationale       String   // Pourquoi (analyse)
+  actions         Json     // Liste d'actions recommandées
+  estimatedUplift Float    @default(0) // % d'impact estimé
+  confidence      Float    @default(0) // 0..1
+  drivers         String[] @default([]) // WEATHER, CALENDAR, SEASON, STOCKOUT, TREND
+  validUntil      DateTime?
+  createdAt       DateTime @default(now())
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([tenantId])
+}
+
+model Report {
+  id        String   @id @default(cuid())
+  tenantId  String
+  title     String
+  period    String   // WEEKLY, MONTHLY, QUARTERLY
+  format    String   // PDF, XLSX, PPTX
+  summary   String?
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum Plan {
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum Role {
+  SUPER_ADMIN
+  TENANT_ADMIN
+  COMMERCIAL_DIRECTOR
+  ZONE_MANAGER
+  STORE_MANAGER
+  ANALYST
+  VIEWER
+}
+
+enum PromotionStatus {
+  SUGGESTED
+  PLANNED
+  ACTIVE
+  DONE
+  REJECTED
+}
