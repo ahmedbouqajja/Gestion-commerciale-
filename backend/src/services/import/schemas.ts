@@ -7,7 +7,7 @@ import { z } from "zod";
  * canonical field names before validation.
  */
 
-export type ImportEntity = "products" | "stores" | "stock" | "sales";
+export type ImportEntity = "products" | "stores" | "stock" | "achats" | "sales";
 
 export function normalizeKey(s: string): string {
   return s
@@ -102,22 +102,39 @@ export const ENTITY_DEFS: Record<ImportEntity, EntityDef> = {
     ],
   },
 
+  // Inventaire initial du dépôt (saisi une fois). Le stock courant est ensuite
+  // calculé automatiquement : initialStock + achats − ventes.
   stock: {
-    label: "Stocks",
+    label: "Inventaire",
     aliases: {
       productSku: ["productsku", "sku", "codeproduit", "produit", "reference"],
-      storeCode: ["storecode", "code", "magasin", "codemagasin", "codeclient"],
-      quantity: ["quantity", "quantite", "qte", "stock", "stockactuel"],
-      reorderPoint: ["reorderpoint", "seuil", "seuilreappro", "pointcommande"],
+      quantity: ["quantity", "quantite", "qte", "stock", "stockactuel", "stockinitial"],
     },
     schema: z.object({
       productSku: str.pipe(z.string().min(1, "SKU produit requis.")),
-      storeCode: str.pipe(z.string().min(1, "Code client requis.")),
       quantity: num.pipe(z.number().min(0)),
-      reorderPoint: num.optional().default(0),
     }),
-    templateHeaders: ["sku", "code_client", "quantite", "seuil_reappro"],
-    templateRows: [["LAIT-UHT-1L", "CASA-SUP01", "4000", "1500"]],
+    templateHeaders: ["sku", "quantite"],
+    templateRows: [["LAIT-UHT-1L", "4000"], ["RAIB-180", "900"]],
+  },
+
+  // Achats / réceptions au dépôt (fichier quotidien). Entrées de stock.
+  achats: {
+    label: "Achats",
+    aliases: {
+      productSku: ["productsku", "sku", "codeproduit", "produit", "reference"],
+      date: ["date", "jour", "dateachat", "datereception"],
+      quantity: ["quantity", "quantite", "qte", "volume"],
+      unitCost: ["unitcost", "cout", "prixachat", "pa", "coutunitaire"],
+    },
+    schema: z.object({
+      productSku: str.pipe(z.string().min(1, "SKU produit requis.")),
+      date: dateField,
+      quantity: num.pipe(z.number().min(0)),
+      unitCost: num.optional().default(0),
+    }),
+    templateHeaders: ["sku", "date", "quantite", "prix_achat"],
+    templateRows: [["LAIT-UHT-1L", "2026-06-12", "5000", "5.2"]],
   },
 
   sales: {

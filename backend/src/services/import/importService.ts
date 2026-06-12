@@ -88,6 +88,8 @@ async function persist(entity: ImportEntity, rows: Record<string, unknown>[], te
       return persistStores(rows, tenantId);
     case "stock":
       return persistStock(rows, tenantId);
+    case "achats":
+      return persistPurchases(rows, tenantId);
     case "sales":
       return persistSales(rows, tenantId);
   }
@@ -145,21 +147,44 @@ async function persistStores(rows: Record<string, unknown>[], tenantId: string):
   return n;
 }
 
+/** Initial depot inventory: sets the baseline; current stock is then computed
+ *  as initialStock + achats − ventes. The baseline date marks the cut-off. */
 async function persistStock(rows: Record<string, unknown>[], tenantId: string): Promise<number> {
-  const { products, stores } = await refMaps(tenantId);
+  const { products } = await refMaps(tenantId);
+  const inventoryDate = new Date();
   let n = 0;
   for (const r of rows) {
     const productId = products.get(String(r.productSku));
-    const storeId = stores.get(String(r.storeCode));
-    if (!productId || !storeId) continue; // unknown reference — skipped
-    await prisma.stockLevel.upsert({
-      where: { tenantId_productId_storeId: { tenantId, productId, storeId } },
-      update: { quantity: Number(r.quantity), reorderPoint: Number(r.reorderPoint ?? 0) },
-      create: { tenantId, productId, storeId, quantity: Number(r.quantity), reorderPoint: Number(r.reorderPoint ?? 0) },
+    if (!productId) continue; // unknown product — skipped
+    await prisma.product.update({
+      where: { id: productId },
+      data: { initialStock: Number(r.quantity), inventoryDate },
     });
     n++;
   }
   return n;
+}
+
+/** Depot purchases (entrées de stock). */
+async function persistPurchases(rows: Record<string, unknown>[], tenantId: string): Promise<number> {
+  const { products } = await refMaps(tenantId);
+  const data = rows
+    .map((r) => {
+      const productId = products.get(String(r.productSku));
+      if (!productId) return null;
+      return {
+        tenantId,
+        productId,
+        date: r.date as Date,
+        quantity: Number(r.quantity),
+        unitCost: Number(r.unitCost ?? 0),
+      };
+    })
+    .filter((d): d is NonNullable<typeof d> => d !== null);
+
+  if (data.length === 0) return 0;
+  const res = await prisma.purchase.createMany({ data });
+  return res.count;
 }
 
 async function persistSales(rows: Record<string, unknown>[], tenantId: string): Promise<number> {

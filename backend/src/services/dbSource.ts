@@ -48,44 +48,58 @@ export async function getDbSaleRecords(tenantId: string, daysBack = 400, asOf = 
 
 /** Catalogue snapshots (daily history + stock) for the recommendation engine. */
 export async function getDbProductSnapshots(tenantId: string, historyDays = 90, asOf = new Date()): Promise<ProductSnapshot[]> {
-  const start = startOfDay(asOf).getTime() - (historyDays - 1) * DAY;
+  const startMs = startOfDay(asOf).getTime() - (historyDays - 1) * DAY;
+  const start = new Date(startMs);
 
-  const [products, stockLevels, sales] = await Promise.all([
-    prisma.product.findMany({
-      where: { tenantId, active: true },
-      select: { id: true, sku: true, name: true, unitPrice: true, costPrice: true, seasonal: true, shelfLifeDays: true, weatherTags: true, category: { select: { kind: true } } },
-    }),
-    prisma.stockLevel.groupBy({
-      by: ["productId"],
-      where: { tenantId },
-      _sum: { quantity: true, reorderPoint: true },
-      _min: { expiryDate: true },
-    }),
-    prisma.sale.findMany({
-      where: { tenantId, date: { gte: new Date(start) } },
-      select: { productId: true, date: true, quantity: true },
-    }),
+  const products = await prisma.product.findMany({
+    where: { tenantId, active: true },
+    select: {
+      id: true, sku: true, name: true, unitPrice: true, costPrice: true, seasonal: true,
+      shelfLifeDays: true, weatherTags: true, initialStock: true, inventoryDate: true,
+      category: { select: { kind: true } },
+    },
+  });
+
+  // Earliest inventory baseline bounds the movement queries used for stock.
+  const inventoryDates = products.map((p) => p.inventoryDate).filter((d): d is Date => d != null);
+  const minInventory = inventoryDates.length ? new Date(Math.min(...inventoryDates.map((d) => d.getTime()))) : undefined;
+  const movementWhere = { tenantId, date: { lte: asOf, ...(minInventory ? { gte: minInventory } : {}) } };
+
+  const [historySales, purchaseAgg, stockSales] = await Promise.all([
+    // Sales over the history window → daily series for trend/forecast.
+    prisma.sale.findMany({ where: { tenantId, date: { gte: start, lte: asOf } }, select: { productId: true, date: true, quantity: true } }),
+    // Purchases (entrées) since the inventory baseline.
+    prisma.purchase.groupBy({ by: ["productId"], where: movementWhere, _sum: { quantity: true } }),
+    // Sales (sorties) since the inventory baseline → applied per-product below.
+    prisma.sale.findMany({ where: movementWhere, select: { productId: true, date: true, quantity: true } }),
   ]);
 
-  const stockByProduct = new Map(stockLevels.map((s) => [s.productId, s]));
-
-  // Aggregate daily quantities per product over the history window.
+  // Daily history series per product over the window.
   const historyByProduct = new Map<string, number[]>();
   for (const p of products) historyByProduct.set(p.id, new Array(historyDays).fill(0));
-  for (const sale of sales) {
-    const idx = Math.floor((sale.date.getTime() - start) / DAY);
+  for (const sale of historySales) {
+    const idx = Math.floor((sale.date.getTime() - startMs) / DAY);
     if (idx < 0 || idx >= historyDays) continue;
     const arr = historyByProduct.get(sale.productId);
     if (arr) arr[idx] += sale.quantity;
   }
 
-  const today = startOfDay(asOf).getTime();
+  const purchasesByProduct = new Map(purchaseAgg.map((p) => [p.productId, p._sum.quantity ?? 0]));
+
+  // Sum sales since each product's own inventory baseline (sorties).
+  const inventoryByProduct = new Map(products.map((p) => [p.id, p.inventoryDate]));
+  const salesSinceByProduct = new Map<string, number>();
+  for (const s of stockSales) {
+    const inv = inventoryByProduct.get(s.productId);
+    if (inv && s.date < inv) continue; // before this product's baseline → ignored
+    salesSinceByProduct.set(s.productId, (salesSinceByProduct.get(s.productId) ?? 0) + s.quantity);
+  }
+
   return products.map((p) => {
-    const stock = stockByProduct.get(p.id);
-    const nearestExpiry = stock?._min.expiryDate;
-    const nearestExpiryDays = nearestExpiry
-      ? Math.max(0, Math.round((startOfDay(nearestExpiry).getTime() - today) / DAY))
-      : undefined;
+    const history = historyByProduct.get(p.id) ?? [];
+    const recentAvg7 = history.slice(-7).reduce((a, b) => a + b, 0) / 7;
+    // Stock dépôt = inventaire initial + achats − ventes (depuis la base d'inventaire).
+    const stock = p.initialStock + (purchasesByProduct.get(p.id) ?? 0) - (salesSinceByProduct.get(p.id) ?? 0);
     return {
       sku: p.sku,
       name: p.name,
@@ -94,11 +108,11 @@ export async function getDbProductSnapshots(tenantId: string, historyDays = 90, 
       costPrice: p.costPrice,
       seasonal: p.seasonal,
       weatherTags: (p.weatherTags as WeatherTag[]) ?? [],
-      salesHistory: historyByProduct.get(p.id) ?? [],
-      stock: stock?._sum.quantity ?? 0,
-      reorderPoint: stock?._sum.reorderPoint ?? 0,
+      salesHistory: history,
+      stock,
+      // Seuil de réappro auto : ~7 jours de couverture au rythme récent.
+      reorderPoint: Math.round(recentAvg7 * 7),
       shelfLifeDays: p.shelfLifeDays ?? undefined,
-      nearestExpiryDays,
     };
   });
 }

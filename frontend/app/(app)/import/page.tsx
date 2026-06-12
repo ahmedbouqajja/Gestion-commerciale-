@@ -5,10 +5,11 @@ import { api, type ImportEntity, type ImportReport } from "@/lib/api";
 import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, Loader2, Upload } from "lucide-react";
 
 const ENTITIES: { key: ImportEntity; label: string; hint: string }[] = [
-  { key: "sales", label: "Ventes", hint: "sku, code client, date, quantité, CA" },
+  { key: "sales", label: "Ventes (sorties)", hint: "sku, code client, date, quantité, CA" },
+  { key: "achats", label: "Achats (entrées)", hint: "sku, date, quantité, prix d'achat" },
   { key: "products", label: "Produits", hint: "sku, nom, catégorie, prix" },
   { key: "stores", label: "Clients", hint: "code, nom, type, ville" },
-  { key: "stock", label: "Stocks", hint: "sku, code client, quantité, seuil" },
+  { key: "stock", label: "Inventaire initial", hint: "sku, quantité (une seule fois)" },
 ];
 
 export default function ImportPage() {
@@ -37,11 +38,14 @@ export default function ImportPage() {
     <div className="p-6 lg:p-8">
       <header className="mb-6">
         <h1 className="text-2xl font-bold">Importation des données</h1>
-        <p className="text-sm text-slate-500">Importez vos ventes, produits, magasins et stocks (Excel .xlsx ou CSV) avec validation automatique.</p>
+        <p className="text-sm text-slate-500">
+          Importez vos ventes, achats, produits et clients (Excel .xlsx ou CSV) avec validation automatique.
+          Le stock dépôt se calcule automatiquement (inventaire initial + achats − ventes).
+        </p>
       </header>
 
       {/* Entity selector */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {ENTITIES.map((e) => (
           <button
             key={e.key}

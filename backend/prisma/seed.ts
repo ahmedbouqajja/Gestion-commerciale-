@@ -70,9 +70,8 @@ async function main() {
     );
   }
 
-  // Reset sales/stock for idempotency.
+  // Reset sales for idempotency.
   await prisma.sale.deleteMany({ where: { tenantId: tenant.id } });
-  await prisma.stockLevel.deleteMany({ where: { tenantId: tenant.id } });
 
   const now = new Date();
   const days = 90;
@@ -81,7 +80,7 @@ async function main() {
   for (const ps of PRODUCT_SEEDS) {
     const product = await prisma.product.upsert({
       where: { tenantId_sku: { tenantId: tenant.id, sku: ps.sku } },
-      update: {},
+      update: { initialStock: ps.stock, inventoryDate: now },
       create: {
         tenantId: tenant.id,
         sku: ps.sku,
@@ -92,14 +91,13 @@ async function main() {
         seasonal: ps.seasonal,
         shelfLifeDays: ps.shelfLifeDays,
         weatherTags: ps.weatherTags,
+        // Depot stock baseline: current sales (in the past) don't decrement it.
+        initialStock: ps.stock,
+        inventoryDate: now,
       },
     });
 
-    // Nearest-batch expiry date derived from the product's DLC position.
-    const expiryDate = new Date(now.getTime() + ps.nearestExpiryDays * 86_400_000);
-
     const sales: { tenantId: string; productId: string; storeId: string; date: Date; quantity: number; revenue: number; margin: number; returnedQty: number; returnedRevenue: number }[] = [];
-    const stockLevels: { tenantId: string; productId: string; storeId: string; quantity: number; reorderPoint: number; expiryDate: Date }[] = [];
     stores.forEach((store, si) => {
       const history = buildHistory(ps, days, storeFactors[si] ?? 0.5);
       history.forEach((qty, i) => {
@@ -117,18 +115,8 @@ async function main() {
           returnedRevenue: Number((returnedQty * ps.unitPrice).toFixed(2)),
         });
       });
-      // Current stock split across clients.
-      stockLevels.push({
-        tenantId: tenant.id,
-        productId: product.id,
-        storeId: store.id,
-        quantity: Math.round((ps.stock / stores.length) * (storeFactors[si] ?? 0.5)),
-        reorderPoint: Math.round(ps.reorderPoint / stores.length),
-        expiryDate,
-      });
     });
     await prisma.sale.createMany({ data: sales });
-    await prisma.stockLevel.createMany({ data: stockLevels });
   }
 
   console.log("✓ Tenant, users, stores, categories, products & 90 jours de ventes créés.");

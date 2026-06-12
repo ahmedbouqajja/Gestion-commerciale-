@@ -105,7 +105,7 @@ async function triggerDownload(blob: Blob, filename: string) {
 }
 
 // ─── Import ─────────────────────────────────────────────────────────────────
-export type ImportEntity = "products" | "stores" | "stock" | "sales";
+export type ImportEntity = "products" | "stores" | "stock" | "achats" | "sales";
 export interface RowError {
   row: number;
   field?: string;

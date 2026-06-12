@@ -39,6 +39,23 @@ describe("import validation (CSV)", () => {
     expect((report.preview[0].date as Date) instanceof Date).toBe(true);
   });
 
+  it("accepts an achats (purchases) file with date and cost", async () => {
+    const file = csv(
+      ["sku,date,quantite,prix_achat", "LAIT-UHT-1L,2026-06-12,5000,5.2", "RAIB-180,12/06/2026,800,2.3"].join("\n"),
+    );
+    const report = await importSpreadsheet({ entity: "achats", ...file, persist: false });
+    expect(report.validRows).toBe(2);
+    expect((report.preview[0].date as Date) instanceof Date).toBe(true);
+    expect(report.preview[0]).toMatchObject({ productSku: "LAIT-UHT-1L", quantity: 5000, unitCost: 5.2 });
+  });
+
+  it("accepts an inventaire (initial stock) file with just sku and quantity", async () => {
+    const file = csv(["sku,quantite", "LAIT-UHT-1L,4000"].join("\n"));
+    const report = await importSpreadsheet({ entity: "stock", ...file, persist: false });
+    expect(report.validRows).toBe(1);
+    expect(report.preview[0]).toMatchObject({ productSku: "LAIT-UHT-1L", quantity: 4000 });
+  });
+
   it("falls back to DEMO mode when persistence is requested without a database", async () => {
     const file = csv(["code,nom", "CASA-01,Casa Maârif"].join("\n"));
     const report = await importSpreadsheet({ entity: "stores", ...file, persist: true });

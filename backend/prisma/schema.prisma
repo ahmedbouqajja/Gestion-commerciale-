@@ -28,6 +28,7 @@ model Tenant {
   categories      Category[]
   products        Product[]
   sales           Sale[]
+  purchases       Purchase[]
   stockLevels     StockLevel[]
   promotions      Promotion[]
   recommendations Recommendation[]
@@ -100,6 +101,10 @@ model Product {
   costPrice   Float    @default(0)
   seasonal    Boolean  @default(false)
   shelfLifeDays Int?   // Durée de conservation (DLC) d'un lot frais, en jours
+  // Stock dépôt : niveau de départ saisi une fois, puis ajusté automatiquement
+  // par les achats (entrées) et les ventes (sorties).
+  initialStock  Float    @default(0)
+  inventoryDate DateTime? // Date de l'inventaire initial (point de départ du calcul)
   weatherTags String[] @default([]) // ["HEAT", "RAIN", "RAMADAN", ...]
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -107,6 +112,7 @@ model Product {
   tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   category        Category?        @relation(fields: [categoryId], references: [id])
   sales           Sale[]
+  purchases       Purchase[]
   stockLevels     StockLevel[]
   recommendations Recommendation[]
 
@@ -136,6 +142,25 @@ model Sale {
   @@index([tenantId, storeId, date])
 }
 
+// Achats / réceptions au dépôt (entrées de stock).
+model Purchase {
+  id        String   @id @default(cuid())
+  tenantId  String
+  productId String
+  date      DateTime
+  quantity  Float
+  unitCost  Float    @default(0)
+  createdAt DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, date])
+  @@index([tenantId, productId, date])
+}
+
+// Legacy — stock par point de vente. Conservé pour compatibilité ; le calcul du
+// stock se fait désormais au niveau dépôt (initialStock + achats − ventes).
 model StockLevel {
   id           String   @id @default(cuid())
   tenantId     String

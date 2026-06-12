@@ -29,9 +29,25 @@ L'ordre compte : tout est relié entre les entités.
 1. **Clients** — *Importation* → onglet **Clients** → *Télécharger le modèle Excel*
    → remplir (`code`, `nom`, `type`, `ville`, `region`) → importer.
 2. **Produits** — `sku`, `nom`, `catégorie`, `prix_unitaire`, `prix_achat`, `saisonnier`.
-3. **Stocks** — quantité par produit et par client + seuil de réapprovisionnement.
-4. **Ventes** — historique (`sku`, `code_client`, `date`, `quantité`, `ca`) — c'est ce
-   qui alimente l'intelligence (tendances, prévisions, recommandations).
+3. **Inventaire initial** (une seule fois) — `sku`, `quantité` : le stock dépôt de départ.
+4. **Ventes** — historique (`sku`, `code_client`, `date`, `quantité`, `ca`) — alimente
+   l'intelligence (tendances, prévisions, recommandations).
+
+### Le stock dépôt se calcule tout seul
+
+Vous ne gérez **pas** le stock de vos clients, seulement **votre dépôt**. Le stock
+courant est recalculé automatiquement :
+
+```
+Stock dépôt = Inventaire initial + Σ Achats (entrées) − Σ Ventes (sorties)
+```
+
+Au quotidien, il suffit donc d'importer **deux fichiers** :
+- **Ventes (sorties)** — `sku`, `code_client`, `date`, `quantité`, `ca` → diminue le stock ;
+- **Achats (entrées)** — `sku`, `date`, `quantité`, `prix_achat` → augmente le stock.
+
+Le **seuil de réapprovisionnement** est calculé automatiquement (≈ 7 jours de
+couverture au rythme de vente récent) — rien à saisir.
 
 > 💡 Commencez toujours par **« Valider (sans enregistrer) »** pour contrôler les
 > erreurs ligne par ligne avant de persister.
