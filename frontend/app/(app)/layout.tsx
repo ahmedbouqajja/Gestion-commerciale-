@@ -15,6 +15,7 @@ import {
   Package,
   Settings,
   Store,
+  Upload,
   Users,
 } from "lucide-react";
 
@@ -24,6 +25,7 @@ const NAV = [
   { href: "/forecasts", label: "Prévisions", icon: LineChart },
   { href: "/products", label: "Analyse Produits", icon: Package },
   { href: "/stores", label: "Analyse Magasins", icon: Store },
+  { href: "/import", label: "Importation", icon: Upload },
   { href: "/assistant", label: "Assistant IA", icon: Bot },
 ];
 

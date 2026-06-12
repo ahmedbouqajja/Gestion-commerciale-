@@ -16,7 +16,8 @@ Le cœur intelligent du produit est **fonctionnel et testé**, exposé via une A
 
 | Domaine | Détail |
 | --- | --- |
-| 🧠 **Moteur de recommandation d'offres** | Fusionne 5 signaux — tendance des ventes, météo, calendrier marketing, saisonnalité, risque de rupture — pour produire des recommandations classées (promotion, tête de gondole, dégustation, réassort) avec **impact estimé** et **score de confiance**. |
+| 🧠 **Moteur de recommandation d'offres** | Fusionne 5 signaux — tendance des ventes, météo, calendrier marketing, saisonnalité, risque de rupture — pour produire des recommandations classées (promotion, tête de gondole, dégustation, réassort) avec **impact estimé**, **CA menacé** et **score de confiance**. |
+| 📥 **Importation Excel / CSV** | Import des ventes, produits, magasins et stocks avec **validation automatique** (en-têtes FR/EN tolérants, contrôle ligne par ligne, modèles téléchargeables, aperçu). Persistance multi-tenant via Prisma. |
 | 📊 **Tableau de bord IA** | CA jour / 7 j / 30 j, évolution vs N-1, produits en croissance/baisse, magasins performants/en difficulté, **alertes automatiques**. |
 | 🌤️ **Analyse météo** | Connecteur OpenWeatherMap (avec simulation déterministe sans clé) → tags commerciaux (canicule, pluie, froid). |
 | 📅 **Calendrier marketing** | Détection automatique Ramadan, Aïd Al Fitr, Aïd Al Adha, rentrée, été, hiver, fêtes — avec affinités produits. |
@@ -27,8 +28,9 @@ Le cœur intelligent du produit est **fonctionnel et testé**, exposé via une A
 | 🖥️ **Frontend premium** | Next.js + Tailwind : landing, connexion, dashboard, promotions IA, prévisions, produits, magasins, assistant. |
 
 ### 🗺️ Feuille de route (pages présentes en placeholder / à étoffer)
-Importation ERP (Sage / Odoo / SAP), génération de rapports PDF/Excel/PPTX, facturation,
-gestion fine des utilisateurs, classement des enseignes, files d'attente BullMQ/Redis.
+Connecteurs ERP (Sage / Odoo / SAP), génération de rapports PDF/Excel/PPTX, facturation,
+gestion fine des utilisateurs, classement des enseignes, files d'attente BullMQ/Redis,
+branchement du tableau de bord sur les données importées (DB) au lieu du jeu de démo.
 
 ---
 
@@ -103,6 +105,8 @@ npm run dev
 | `GET` | `/api/forecast/:sku` | Prévisions 7/30/90/365 j |
 | `POST` | `/api/assistant` | Assistant conversationnel |
 | `GET` | `/api/products` · `/api/stores` | Référentiels |
+| `GET` | `/api/import/:entity/template` | Modèle CSV (sales/products/stores/stock) |
+| `POST` | `/api/import/:entity` | Import Excel/CSV + validation (`?dryRun=1` = valider seulement) |
 
 Toutes les routes `/api/*` (hors auth) exigent un header `Authorization: Bearer <token>`.
 

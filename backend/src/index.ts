@@ -6,6 +6,7 @@ import { env, hasDatabase } from "./config/env.js";
 import { DEMO_USER } from "./services/authService.js";
 import authRoutes from "./routes/auth.js";
 import intelligenceRoutes from "./routes/intelligence.js";
+import importRoutes from "./routes/import.js";
 import { notFound, errorHandler } from "./middleware/error.js";
 
 const app = express();
@@ -27,6 +28,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/import", importRoutes);
 app.use("/api", intelligenceRoutes);
 
 app.use(notFound);

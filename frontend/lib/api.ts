@@ -53,7 +53,56 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ question }),
     }),
+
+  importFile: async (entity: ImportEntity, file: File, dryRun: boolean): Promise<ImportReport> => {
+    const form = new FormData();
+    form.append("file", file);
+    const token = getToken();
+    const res = await fetch(`${API_URL}/import/${entity}?dryRun=${dryRun ? "1" : "0"}`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: form, // browser sets multipart boundary
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error ?? `Erreur ${res.status}`);
+    }
+    return res.json() as Promise<ImportReport>;
+  },
+
+  downloadTemplate: async (entity: ImportEntity) => {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/import/${entity}/template`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    if (!res.ok) throw new Error("Téléchargement du modèle impossible.");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `modele_${entity}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
 };
+
+// ─── Import ─────────────────────────────────────────────────────────────────
+export type ImportEntity = "products" | "stores" | "stock" | "sales";
+export interface RowError {
+  row: number;
+  field?: string;
+  message: string;
+}
+export interface ImportReport {
+  entity: ImportEntity;
+  mode: "PERSISTED" | "DRY_RUN" | "DEMO";
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  persisted: number;
+  errors: RowError[];
+  preview: Record<string, unknown>[];
+}
 
 // ─── Types mirrored from the backend ────────────────────────────────────────
 export interface AuthUser {
