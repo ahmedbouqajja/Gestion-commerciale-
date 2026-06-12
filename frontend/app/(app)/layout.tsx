@@ -9,6 +9,7 @@ import {
   Bot,
   Building2,
   CreditCard,
+  FileText,
   Gauge,
   LineChart,
   LogOut,
@@ -26,6 +27,7 @@ const NAV = [
   { href: "/products", label: "Analyse Produits", icon: Package },
   { href: "/stores", label: "Analyse Magasins", icon: Store },
   { href: "/import", label: "Importation", icon: Upload },
+  { href: "/reports", label: "Rapports", icon: FileText },
   { href: "/assistant", label: "Assistant IA", icon: Bot },
 ];
 

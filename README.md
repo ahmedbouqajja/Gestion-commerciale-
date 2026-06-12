@@ -19,6 +19,7 @@ Le cœur intelligent du produit est **fonctionnel et testé**, exposé via une A
 | 🧠 **Moteur de recommandation d'offres** | Fusionne 5 signaux — tendance des ventes, météo, calendrier marketing, saisonnalité, risque de rupture — pour produire des recommandations classées (promotion, tête de gondole, dégustation, réassort) avec **impact estimé**, **CA menacé** et **score de confiance**. |
 | 📥 **Importation Excel / CSV** | Import des ventes, produits, magasins et stocks avec **validation automatique** (en-têtes FR/EN tolérants, contrôle ligne par ligne, modèles téléchargeables, aperçu). Persistance multi-tenant via Prisma. |
 | 🔗 **Pipeline branché sur les données** | Dès qu'un tenant a des données (import/seed), le tableau de bord, les recommandations, les prévisions et les listes lisent **PostgreSQL** (par société) ; sinon repli automatique sur le jeu de démo. Catégorie déduite du libellé à l'import pour activer l'intelligence météo/calendrier. |
+| 📄 **Génération de rapports** | Rapports **PDF** (pdfkit) et **Excel** (exceljs) hebdo / mensuel / trimestriel, style corporate, avec **commentaires exécutifs auto-générés** (ancrés sur les données, enrichis par OpenAI si configuré) et aperçu dans l'app. |
 | 📊 **Tableau de bord IA** | CA jour / 7 j / 30 j, évolution vs N-1, produits en croissance/baisse, magasins performants/en difficulté, **alertes automatiques**. |
 | 🌤️ **Analyse météo** | Connecteur OpenWeatherMap (avec simulation déterministe sans clé) → tags commerciaux (canicule, pluie, froid). |
 | 📅 **Calendrier marketing** | Détection automatique Ramadan, Aïd Al Fitr, Aïd Al Adha, rentrée, été, hiver, fêtes — avec affinités produits. |
@@ -29,8 +30,9 @@ Le cœur intelligent du produit est **fonctionnel et testé**, exposé via une A
 | 🖥️ **Frontend premium** | Next.js + Tailwind : landing, connexion, dashboard, promotions IA, prévisions, produits, magasins, assistant. |
 
 ### 🗺️ Feuille de route (pages présentes en placeholder / à étoffer)
-Connecteurs ERP (Sage / Odoo / SAP), génération de rapports PDF/Excel/PPTX, facturation,
-gestion fine des utilisateurs, classement des enseignes, files d'attente BullMQ/Redis.
+Connecteurs ERP (Sage / Odoo / SAP), export PowerPoint (PPTX), facturation,
+gestion fine des utilisateurs, classement des enseignes, files d'attente BullMQ/Redis
+(rapports planifiés / envoi automatique par email).
 
 ---
 
@@ -107,6 +109,8 @@ npm run dev
 | `GET` | `/api/products` · `/api/stores` | Référentiels |
 | `GET` | `/api/import/:entity/template` | Modèle CSV (sales/products/stores/stock) |
 | `POST` | `/api/import/:entity` | Import Excel/CSV + validation (`?dryRun=1` = valider seulement) |
+| `GET` | `/api/reports/preview?period=` | Aperçu rapport (KPIs + commentaires) |
+| `GET` | `/api/reports/:period.:format` | Télécharger rapport (`weekly\|monthly\|quarterly`.`pdf\|xlsx`) |
 
 Toutes les routes `/api/*` (hors auth) exigent un header `Authorization: Bearer <token>`.
 

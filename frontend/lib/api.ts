@@ -76,15 +76,29 @@ export const api = {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
     if (!res.ok) throw new Error("Téléchargement du modèle impossible.");
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `modele_${entity}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    await triggerDownload(await res.blob(), `modele_${entity}.csv`);
+  },
+
+  reportPreview: (period: ReportPeriod) => request<ReportPreview>(`/reports/preview?period=${period}`),
+
+  downloadReport: async (period: ReportPeriod, format: "pdf" | "xlsx") => {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/reports/${period}.${format}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    if (!res.ok) throw new Error("Génération du rapport impossible.");
+    await triggerDownload(await res.blob(), `rapport_${period}.${format}`);
   },
 };
+
+async function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 // ─── Import ─────────────────────────────────────────────────────────────────
 export type ImportEntity = "products" | "stores" | "stock" | "sales";
@@ -102,6 +116,17 @@ export interface ImportReport {
   persisted: number;
   errors: RowError[];
   preview: Record<string, unknown>[];
+}
+
+// ─── Reports ────────────────────────────────────────────────────────────────
+export type ReportPeriod = "weekly" | "monthly" | "quarterly";
+export interface ReportPreview {
+  tenantName: string;
+  period: ReportPeriod;
+  generatedAt: string;
+  kpis: KpiCard[];
+  commentary: string[];
+  recommendationsCount: number;
 }
 
 // ─── Types mirrored from the backend ────────────────────────────────────────
