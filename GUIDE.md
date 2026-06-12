@@ -66,9 +66,11 @@ Chaque matin, faites le tour dans cet ordre :
    - 🔴 **Risque de rupture** → passer une commande fournisseur en urgence ;
    - 🟡 **Risque de péremption (DLC)** → déstockage / transfert avant la perte ;
    - 🟢 **Opportunités** → offres selon météo / saison / calendrier.
-3. **Catalogue produits** — colonne **DLC restante** et statut
-   (Sain / Risque rupture / Risque péremption) pour planifier l'approvisionnement.
-4. **Clients & Tournées** — préparer les livraisons : qui est livré aujourd'hui,
+3. **Réapprovisionnement** — la commande fournisseur suggérée (quoi et combien
+   commander), avec coût estimé. Un clic sur **Exporter (Excel)** génère un bon
+   de commande prêt à envoyer.
+4. **Catalogue produits** — stock dépôt et couverture pour suivre l'état du stock.
+5. **Clients & Tournées** — préparer les livraisons : qui est livré aujourd'hui,
    quel commercial est responsable, sur quelle tournée.
 
 ---
@@ -102,6 +104,7 @@ Importer les données  →  Tableau de bord  →  Appliquer les recommandations 
 | Tableau de bord | KPIs, taux de retour, mouvements, alertes |
 | Promotions IA | Recommandations (rupture, péremption, opportunités) |
 | Prévisions | Projections de demande 7/30/90/365 j |
+| Réapprovisionnement | Commande fournisseur suggérée + export Excel |
 | Catalogue produits | Stock, couverture, DLC restante, statut |
 | Clients & Tournées | Points de vente groupés par tournée |
 | Types de clients | Répartition des clients par type de commerce |

@@ -47,6 +47,15 @@ export const api = {
   recommendations: () => request<{ recommendations: Recommendation[]; weather: WeatherForecast[] }>("/recommendations"),
   products: () => request<{ products: ProductRow[] }>("/products"),
   stores: () => request<{ stores: StoreRow[] }>("/stores"),
+  reorders: () => request<{ reorders: ReorderRow[] }>("/reorders"),
+  downloadReorders: async () => {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/reorders.xlsx`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    if (!res.ok) throw new Error("Génération de la commande impossible.");
+    await triggerDownload(await res.blob(), `commande_fournisseur_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  },
   users: () => request<{ users: UserRow[] }>("/auth/users"),
   createUser: (input: { fullName: string; email: string; password: string; role: string }) =>
     request<UserRow>("/auth/users", { method: "POST", body: JSON.stringify(input) }),
@@ -243,6 +252,17 @@ export interface BillingInfo {
   currency: string;
   country: string;
   since: string | null;
+}
+export interface ReorderRow {
+  sku: string;
+  name: string;
+  category: string;
+  stock: number;
+  dailySales: number;
+  daysOfCover: number;
+  suggestedQty: number;
+  unitCost: number;
+  estimatedCost: number;
 }
 export interface ForecastPoint {
   dayOffset: number;

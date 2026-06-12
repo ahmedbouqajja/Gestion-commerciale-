@@ -98,6 +98,51 @@ export async function listProducts(tenantId?: string, asOf = new Date()) {
   });
 }
 
+export interface ReorderSuggestion {
+  sku: string;
+  name: string;
+  category: string;
+  stock: number;
+  dailySales: number;
+  daysOfCover: number;
+  suggestedQty: number;
+  unitCost: number;
+  estimatedCost: number;
+}
+
+const REORDER_TRIGGER_DAYS = 7; // suggérer une commande si couverture ≤ 7 j
+const REORDER_TARGET_DAYS = 14; // viser 14 j de couverture
+
+/**
+ * Suggested supplier purchase order: for each product whose depot stock covers
+ * ≤ 7 days of recent sales, propose a quantity that restores ~14 days of cover,
+ * with the estimated cost. Saves the distributor from computing reorders by hand.
+ */
+export async function getReorderSuggestions(tenantId?: string, asOf = new Date()): Promise<ReorderSuggestion[]> {
+  const snapshots = await loadSnapshots(tenantId, asOf);
+  const out: ReorderSuggestion[] = [];
+  for (const s of snapshots) {
+    const recentAvg = s.salesHistory.slice(-7).reduce((a, b) => a + b, 0) / 7;
+    if (recentAvg <= 0) continue;
+    const daysOfCover = s.stock / recentAvg;
+    if (daysOfCover > REORDER_TRIGGER_DAYS) continue;
+    const suggestedQty = Math.max(0, Math.round(REORDER_TARGET_DAYS * recentAvg - s.stock));
+    if (suggestedQty <= 0) continue;
+    out.push({
+      sku: s.sku,
+      name: s.name,
+      category: s.category,
+      stock: Math.round(s.stock),
+      dailySales: Number(recentAvg.toFixed(1)),
+      daysOfCover: Number(daysOfCover.toFixed(1)),
+      suggestedQty,
+      unitCost: s.costPrice,
+      estimatedCost: Math.round(suggestedQty * s.costPrice),
+    });
+  }
+  return out.sort((a, b) => a.daysOfCover - b.daysOfCover);
+}
+
 export async function listStores(tenantId?: string, asOf = new Date()) {
   return (await resolveSource(tenantId, asOf)) === "db" ? listDbStores(tenantId!) : STORE_SEEDS;
 }
