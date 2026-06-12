@@ -33,7 +33,7 @@ export async function login(email: string, password: string): Promise<AuthResult
     return demoResult();
   }
 
-  const user = await prisma.user.findFirst({ where: { email: email.toLowerCase() }, include: { tenant: true } });
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() }, include: { tenant: true } });
   if (!user || !user.active || !(await verifyPassword(password, user.passwordHash))) {
     throw new Error("Identifiants invalides.");
   }
@@ -61,7 +61,7 @@ export async function registerTenant(input: {
   if (!hasDatabase) throw new Error("Inscription indisponible en mode démo (configurez DATABASE_URL).");
 
   const slug = input.tenantName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-  const existing = await prisma.user.findFirst({ where: { email: input.email.toLowerCase() } });
+  const existing = await prisma.user.findUnique({ where: { email: input.email.toLowerCase() } });
   if (existing) throw new Error("Cet email est déjà utilisé.");
 
   const tenant = await prisma.tenant.create({ data: { name: input.tenantName, slug: `${slug}-${Date.now().toString(36)}` } });

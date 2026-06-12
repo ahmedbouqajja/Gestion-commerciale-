@@ -28,7 +28,7 @@ async function main() {
   });
 
   await prisma.user.upsert({
-    where: { tenantId_email: { tenantId: tenant.id, email: "admin@smartpromo.ma" } },
+    where: { email: "admin@smartpromo.ma" },
     update: {},
     create: {
       tenantId: tenant.id,
