@@ -113,6 +113,27 @@ export async function listUsers(tenantId?: string): Promise<UserSummary[]> {
   });
 }
 
+export interface BillingInfo {
+  tenantName: string;
+  plan: string; // STARTER | PRO | ENTERPRISE
+  currency: string;
+  country: string;
+  since: Date | null;
+}
+
+/** Current subscription / billing summary for a tenant. */
+export async function getBilling(tenantId?: string): Promise<BillingInfo> {
+  if (!hasDatabase || !tenantId || tenantId === DEMO_USER.tenantId) {
+    return { tenantName: DEMO_USER.tenantName, plan: "PRO", currency: "MAD", country: "MA", since: null };
+  }
+  const t = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { name: true, plan: true, currency: true, country: true, createdAt: true },
+  });
+  if (!t) return { tenantName: DEMO_USER.tenantName, plan: "PRO", currency: "MAD", country: "MA", since: null };
+  return { tenantName: t.name, plan: t.plan, currency: t.currency, country: t.country, since: t.createdAt };
+}
+
 function demoResult(): AuthResult {
   return {
     token: signToken({ userId: DEMO_USER.userId, tenantId: DEMO_USER.tenantId, role: DEMO_USER.role }),

@@ -48,6 +48,7 @@ export const api = {
   products: () => request<{ products: ProductRow[] }>("/products"),
   stores: () => request<{ stores: StoreRow[] }>("/stores"),
   users: () => request<{ users: UserRow[] }>("/auth/users"),
+  billing: () => request<BillingInfo>("/auth/billing"),
   forecast: (sku: string) => request<ForecastResponse>(`/forecast/${sku}`),
   assistant: (question: string) =>
     request<{ intent: string; answer: string; data?: unknown }>("/assistant", {
@@ -233,6 +234,13 @@ export interface UserRow {
   active: boolean;
   lastLoginAt: string | null;
   createdAt: string | null;
+}
+export interface BillingInfo {
+  tenantName: string;
+  plan: string;
+  currency: string;
+  country: string;
+  since: string | null;
 }
 export interface ForecastPoint {
   dayOffset: number;

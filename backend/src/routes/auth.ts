@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { login, registerTenant, listUsers } from "../services/authService.js";
+import { login, registerTenant, listUsers, getBilling } from "../services/authService.js";
 import { authenticate } from "../middleware/auth.js";
 
 const router = Router();
@@ -43,6 +43,14 @@ router.get("/me", authenticate, (req, res) => {
 router.get("/users", authenticate, async (req, res, next) => {
   try {
     res.json({ users: await listUsers(req.auth?.tenantId) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/billing", authenticate, async (req, res, next) => {
+  try {
+    res.json(await getBilling(req.auth?.tenantId));
   } catch (err) {
     next(err);
   }
