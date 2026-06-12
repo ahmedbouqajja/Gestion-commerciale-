@@ -79,4 +79,6 @@ export interface Recommendation {
   estimatedUplift: number; // %
   confidence: number; // 0..1
   drivers: Driver[];
+  /** For stock-out risks: revenue threatened over the next week (MAD). */
+  revenueAtRisk?: number;
 }

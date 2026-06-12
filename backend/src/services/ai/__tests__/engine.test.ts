@@ -42,12 +42,14 @@ describe("recommendation engine", () => {
     expect(rec!.estimatedUplift).toBeGreaterThan(0);
   });
 
-  it("flags stock-out risk and prioritises supplier order", () => {
+  it("flags stock-out risk, prioritises supplier order and quantifies revenue at risk", () => {
     const lowStock: ProductSnapshot = { ...baseProduct, stock: 50, weatherTags: [] };
     const rec = analyzeProduct(lowStock, { weather: [], events: [] });
     expect(rec).not.toBeNull();
     expect(rec!.drivers).toContain("STOCKOUT");
     expect(rec!.actions[0].type).toBe("SUPPLIER_ORDER");
+    // 100 u/j × 7 j − 50 en stock = 650 u × 10 MAD = 6500 MAD menacés.
+    expect(rec!.revenueAtRisk).toBe(6500);
   });
 
   it("returns null when there is no actionable signal", () => {

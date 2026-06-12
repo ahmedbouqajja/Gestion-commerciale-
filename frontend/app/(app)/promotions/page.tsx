@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, type Recommendation } from "@/lib/api";
-import { AlertTriangle, Sparkles, TrendingUp } from "lucide-react";
+import { AlertTriangle, ShieldAlert, Sparkles, TrendingUp } from "lucide-react";
 
 const DRIVER_LABELS: Record<string, string> = {
   WEATHER: "Météo",
@@ -46,10 +46,21 @@ export default function PromotionsPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="inline-flex items-center gap-1 text-lg font-bold text-emerald-600">
-                    <TrendingUp className="h-4 w-4" /> +{r.estimatedUplift}%
-                  </div>
-                  <div className="text-xs text-slate-400">confiance {(r.confidence * 100).toFixed(0)}%</div>
+                  {r.revenueAtRisk ? (
+                    <>
+                      <div className="inline-flex items-center gap-1 text-lg font-bold text-red-600">
+                        <ShieldAlert className="h-4 w-4" /> {new Intl.NumberFormat("fr-MA").format(r.revenueAtRisk)} MAD
+                      </div>
+                      <div className="text-xs text-slate-400">CA menacé · confiance {(r.confidence * 100).toFixed(0)}%</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="inline-flex items-center gap-1 text-lg font-bold text-emerald-600">
+                        <TrendingUp className="h-4 w-4" /> +{r.estimatedUplift}%
+                      </div>
+                      <div className="text-xs text-slate-400">confiance {(r.confidence * 100).toFixed(0)}%</div>
+                    </>
+                  )}
                 </div>
               </div>
 

@@ -11,7 +11,14 @@ import { notFound, errorHandler } from "./middleware/error.js";
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+// Restrict origins in production via CORS_ORIGIN; "*" stays open for local dev.
+const allowAllOrigins = env.corsOrigins.includes("*");
+app.use(
+  cors({
+    origin: allowAllOrigins ? true : env.corsOrigins,
+    credentials: !allowAllOrigins,
+  }),
+);
 app.use(express.json({ limit: "5mb" }));
 if (env.nodeEnv !== "test") app.use(morgan("dev"));
 

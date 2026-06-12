@@ -56,7 +56,10 @@ async function main() {
     console.log(`\n   \x1b[1m${r.title}\x1b[0m  ${C.dim(`[${r.drivers.join(", ")}]`)}`);
     console.log(`   Analyse  : ${r.rationale}`);
     console.log(`   Actions  : ${r.actions.map((a) => a.label).join(" · ")}`);
-    console.log(`   Impact   : ${C.green(`+${r.estimatedUplift}% ventes`)}  |  Confiance : ${(r.confidence * 100).toFixed(0)}%`);
+    const impact = r.revenueAtRisk
+      ? `${C.red(`CA protégé : ~${r.revenueAtRisk.toLocaleString("fr-MA")} MAD`)}`
+      : `${C.green(`+${r.estimatedUplift}% ventes`)}`;
+    console.log(`   Impact   : ${impact}  |  Confiance : ${(r.confidence * 100).toFixed(0)}%`);
   }
 
   // ── 4. Forecast ──

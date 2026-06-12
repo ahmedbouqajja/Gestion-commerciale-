@@ -73,8 +73,9 @@ function answerFor(intent: Intent, ctx: AssistantContext, question: string): Ass
       const target = Number(/(\d+)\s*%/.exec(question)?.[1] ?? 10) || 10;
       const opportunities = recs.filter((r) => !r.drivers.includes("STOCKOUT")).slice(0, 5);
       const stockouts = recs.filter((r) => r.drivers.includes("STOCKOUT")).slice(0, 3);
+      const atRisk = stockouts.reduce((sum, s) => sum + (s.revenueAtRisk ?? 0), 0);
       const steps = [
-        `1. Sécuriser le CA : traiter ${stockouts.length} risque(s) de rupture (${stockouts.map((s) => s.productName).join(", ") || "aucun"}).`,
+        `1. Sécuriser le CA : traiter ${stockouts.length} risque(s) de rupture (${stockouts.map((s) => s.productName).join(", ") || "aucun"})${atRisk ? ` — ~${atRisk.toLocaleString("fr-MA")} MAD menacés`: ""}.`,
         `2. Activer ${opportunities.length} promotion(s) à fort potentiel : ${opportunities.map((o) => `${o.productName} (+${o.estimatedUplift}%)`).join(", ")}.`,
         `3. Renforcer les magasins en difficulté : ${d.strugglingStores.slice(0, 3).map((s) => s.name).join(", ") || "aucun"}.`,
         `4. Suivre l'impact quotidiennement via le tableau de bord IA.`,

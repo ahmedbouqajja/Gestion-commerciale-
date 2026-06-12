@@ -124,6 +124,7 @@ export interface Recommendation {
   estimatedUplift: number;
   confidence: number;
   drivers: string[];
+  revenueAtRisk?: number;
 }
 export interface ProductRow {
   sku: string;

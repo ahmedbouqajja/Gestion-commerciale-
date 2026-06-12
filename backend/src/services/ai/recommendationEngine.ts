@@ -87,13 +87,18 @@ export function analyzeProduct(p: ProductSnapshot, ctx: EngineContext): Recommen
   const reasons: string[] = [];
   let uplift = 0;
   let confidence = 0.4;
+  let revenueAtRisk: number | undefined;
 
   // ── Stock-out risk (highest priority — protects revenue) ──
+  const RESTOCK_HORIZON_DAYS = 7; // assumed supplier lead time
   const stockoutRisk = trend.daysOfCover <= 5 && trend.recentAvg > 0;
   if (stockoutRisk) {
     drivers.push("STOCKOUT");
+    // Demand we cannot serve before a restock = threatened revenue.
+    const unmetUnits = Math.max(0, trend.recentAvg * RESTOCK_HORIZON_DAYS - p.stock);
+    revenueAtRisk = Math.round(unmetUnits * p.unitPrice);
     reasons.push(
-      `Couverture de stock estimée à ${trend.daysOfCover} jour(s) au rythme de vente actuel (${trend.recentAvg.toFixed(0)} u/j).`,
+      `Couverture de stock estimée à ${trend.daysOfCover} jour(s) au rythme de vente actuel (${trend.recentAvg.toFixed(0)} u/j). CA menacé sur 7 j : ~${revenueAtRisk.toLocaleString("fr-MA")} MAD.`,
     );
     actions.push({ type: "SUPPLIER_ORDER", label: "Passer une commande fournisseur en urgence" });
     actions.push({ type: "TRANSFER", label: "Transfert inter-magasin depuis un point de vente excédentaire" });
@@ -176,6 +181,7 @@ export function analyzeProduct(p: ProductSnapshot, ctx: EngineContext): Recommen
     estimatedUplift: uplift,
     confidence,
     drivers: [...new Set(drivers)],
+    revenueAtRisk,
   };
 }
 
@@ -192,6 +198,8 @@ export function generateRecommendations(products: ProductSnapshot[], ctx: Engine
     const aStock = a.drivers.includes("STOCKOUT") ? 1 : 0;
     const bStock = b.drivers.includes("STOCKOUT") ? 1 : 0;
     if (aStock !== bStock) return bStock - aStock;
+    // Among stock-out risks, the most threatened revenue comes first.
+    if (aStock && bStock) return (b.revenueAtRisk ?? 0) - (a.revenueAtRisk ?? 0);
     return b.estimatedUplift * b.confidence - a.estimatedUplift * a.confidence;
   });
 }

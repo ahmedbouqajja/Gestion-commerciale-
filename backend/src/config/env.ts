@@ -14,6 +14,11 @@ export const env = {
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",
   openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
   openWeatherApiKey: process.env.OPENWEATHER_API_KEY ?? "",
+  // Comma-separated list of allowed origins. "*" (default in dev) allows all.
+  corsOrigins: (process.env.CORS_ORIGIN ?? "*")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
 };
 
 export const hasDatabase = Boolean(env.databaseUrl);
