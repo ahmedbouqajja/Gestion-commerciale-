@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
-import { login, registerTenant, listUsers, getBilling } from "../services/authService.js";
-import { authenticate } from "../middleware/auth.js";
+import { login, registerTenant, listUsers, getBilling, createUser } from "../services/authService.js";
+import { authenticate, authorize } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -44,6 +44,25 @@ router.get("/users", authenticate, async (req, res, next) => {
   try {
     res.json({ users: await listUsers(req.auth?.tenantId) });
   } catch (err) {
+    next(err);
+  }
+});
+
+const createUserSchema = z.object({
+  fullName: z.string().min(2),
+  email: z.string().email(),
+  password: z.string().min(8),
+  role: z.enum(["TENANT_ADMIN", "COMMERCIAL_DIRECTOR", "ZONE_MANAGER", "STORE_MANAGER", "ANALYST", "VIEWER"]),
+});
+
+router.post("/users", authenticate, authorize("TENANT_ADMIN"), async (req, res, next) => {
+  try {
+    const input = createUserSchema.parse(req.body);
+    res.status(201).json(await createUser(req.auth?.tenantId, input));
+  } catch (err) {
+    if (err instanceof Error && /déjà utilisé|indisponible/.test(err.message)) {
+      return res.status(400).json({ error: err.message });
+    }
     next(err);
   }
 });

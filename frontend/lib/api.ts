@@ -48,6 +48,8 @@ export const api = {
   products: () => request<{ products: ProductRow[] }>("/products"),
   stores: () => request<{ stores: StoreRow[] }>("/stores"),
   users: () => request<{ users: UserRow[] }>("/auth/users"),
+  createUser: (input: { fullName: string; email: string; password: string; role: string }) =>
+    request<UserRow>("/auth/users", { method: "POST", body: JSON.stringify(input) }),
   billing: () => request<BillingInfo>("/auth/billing"),
   forecast: (sku: string) => request<ForecastResponse>(`/forecast/${sku}`),
   assistant: (question: string) =>

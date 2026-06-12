@@ -1,6 +1,7 @@
 import { hasDatabase } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
 import { hashPassword, signToken, verifyPassword } from "../utils/auth.js";
+import type { Role } from "@prisma/client";
 
 /**
  * Authentication service.
@@ -110,6 +111,30 @@ export async function listUsers(tenantId?: string): Promise<UserSummary[]> {
     where: { tenantId },
     select: { id: true, email: true, fullName: true, role: true, active: true, lastLoginAt: true, createdAt: true },
     orderBy: { createdAt: "asc" },
+  });
+}
+
+/** Create a new user inside the caller's tenant. */
+export async function createUser(
+  tenantId: string | undefined,
+  input: { fullName: string; email: string; password: string; role: Role },
+): Promise<UserSummary> {
+  if (!hasDatabase || !tenantId || tenantId === DEMO_USER.tenantId) {
+    throw new Error("Ajout d'utilisateur indisponible en mode démo (configurez DATABASE_URL).");
+  }
+  const email = input.email.toLowerCase();
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) throw new Error("Cet email est déjà utilisé.");
+
+  return prisma.user.create({
+    data: {
+      tenantId,
+      email,
+      fullName: input.fullName,
+      role: input.role,
+      passwordHash: await hashPassword(input.password),
+    },
+    select: { id: true, email: true, fullName: true, role: true, active: true, lastLoginAt: true, createdAt: true },
   });
 }
 
