@@ -117,6 +117,18 @@ export async function getDbProductSnapshots(tenantId: string, historyDays = 90, 
   });
 }
 
+/** Purchased quantities (entrées) per SKU over the trailing `days`. */
+export async function getDbPurchases(tenantId: string, days = 30, asOf = new Date()): Promise<Map<string, number>> {
+  const from = new Date(asOf.getTime() - days * DAY);
+  const rows = await prisma.purchase.findMany({
+    where: { tenantId, date: { gte: from, lte: asOf } },
+    select: { quantity: true, product: { select: { sku: true } } },
+  });
+  const m = new Map<string, number>();
+  for (const r of rows) m.set(r.product.sku, (m.get(r.product.sku) ?? 0) + r.quantity);
+  return m;
+}
+
 export async function listDbStores(tenantId: string) {
   const stores = await prisma.store.findMany({
     where: { tenantId, active: true },

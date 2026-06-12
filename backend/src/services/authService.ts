@@ -159,6 +159,19 @@ export async function getBilling(tenantId?: string): Promise<BillingInfo> {
   return { tenantName: t.name, plan: t.plan, currency: t.currency, country: t.country, since: t.createdAt };
 }
 
+/** Change the caller's own password (requires the current one). */
+export async function changePassword(userId: string | undefined, currentPassword: string, newPassword: string): Promise<void> {
+  if (!hasDatabase || !userId || userId === DEMO_USER.userId) {
+    throw new Error("Changement de mot de passe indisponible en mode démo (configurez DATABASE_URL).");
+  }
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new Error("Utilisateur introuvable.");
+  if (!(await verifyPassword(currentPassword, user.passwordHash))) {
+    throw new Error("Mot de passe actuel incorrect.");
+  }
+  await prisma.user.update({ where: { id: userId }, data: { passwordHash: await hashPassword(newPassword) } });
+}
+
 function demoResult(): AuthResult {
   return {
     token: signToken({ userId: DEMO_USER.userId, tenantId: DEMO_USER.tenantId, role: DEMO_USER.role }),

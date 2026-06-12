@@ -60,6 +60,17 @@ export const api = {
   createUser: (input: { fullName: string; email: string; password: string; role: string }) =>
     request<UserRow>("/auth/users", { method: "POST", body: JSON.stringify(input) }),
   billing: () => request<BillingInfo>("/auth/billing"),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ ok: true }>("/auth/change-password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) }),
+  stockReport: () => request<{ rows: StockReportRow[] }>("/stock-report"),
+  downloadStockReport: async () => {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/stock-report.xlsx`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    if (!res.ok) throw new Error("Génération du rapport impossible.");
+    await triggerDownload(await res.blob(), `etat_stock_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  },
   forecast: (sku: string) => request<ForecastResponse>(`/forecast/${sku}`),
   assistant: (question: string) =>
     request<{ intent: string; answer: string; data?: unknown }>("/assistant", {
@@ -263,6 +274,15 @@ export interface ReorderRow {
   suggestedQty: number;
   unitCost: number;
   estimatedCost: number;
+}
+export interface StockReportRow {
+  sku: string;
+  name: string;
+  category: string;
+  stock: number;
+  entrees30: number;
+  sorties30: number;
+  stockValue: number;
 }
 export interface ForecastPoint {
   dayOffset: number;

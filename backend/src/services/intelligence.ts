@@ -5,7 +5,7 @@ import { generateRecommendations } from "./ai/recommendationEngine.js";
 import { forecastStandardHorizons } from "./ai/forecast.js";
 import { ask, type AssistantReply } from "./ai/assistant.js";
 import { buildProductSnapshots, buildSaleRecords, STORE_SEEDS } from "./sampleData.js";
-import { getDbProductSnapshots, getDbSaleRecords, listDbStores, tenantHasSales } from "./dbSource.js";
+import { getDbProductSnapshots, getDbSaleRecords, getDbPurchases, listDbStores, tenantHasSales } from "./dbSource.js";
 import { hasDatabase } from "../config/env.js";
 import { keyedTTLCache } from "../lib/cache.js";
 import type { ProductSnapshot, Recommendation, WeatherForecast } from "../types/domain.js";
@@ -141,6 +141,38 @@ export async function getReorderSuggestions(tenantId?: string, asOf = new Date()
     });
   }
   return out.sort((a, b) => a.daysOfCover - b.daysOfCover);
+}
+
+export interface StockReportRow {
+  sku: string;
+  name: string;
+  category: string;
+  stock: number;
+  entrees30: number; // achats (entrées) sur 30 j
+  sorties30: number; // ventes (sorties) sur 30 j
+  stockValue: number; // valeur du stock au coût (MAD)
+}
+
+/** Stock report: current depot stock, 30-day in/out movements and stock value. */
+export async function getStockReport(tenantId?: string, asOf = new Date()): Promise<StockReportRow[]> {
+  const snapshots = await loadSnapshots(tenantId, asOf);
+  const source = await resolveSource(tenantId, asOf);
+  const entrees = source === "db" ? await getDbPurchases(tenantId!, 30, asOf) : new Map<string, number>();
+
+  return snapshots
+    .map((s) => {
+      const sorties30 = s.salesHistory.slice(-30).reduce((a, b) => a + b, 0);
+      return {
+        sku: s.sku,
+        name: s.name,
+        category: s.category,
+        stock: Math.round(s.stock),
+        entrees30: Math.round(entrees.get(s.sku) ?? 0),
+        sorties30: Math.round(sorties30),
+        stockValue: Math.round(s.stock * s.costPrice),
+      };
+    })
+    .sort((a, b) => b.stockValue - a.stockValue);
 }
 
 export async function listStores(tenantId?: string, asOf = new Date()) {

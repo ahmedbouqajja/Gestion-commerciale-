@@ -105,6 +105,7 @@ Importer les données  →  Tableau de bord  →  Appliquer les recommandations 
 | Promotions IA | Recommandations (rupture, péremption, opportunités) |
 | Prévisions | Projections de demande 7/30/90/365 j |
 | Réapprovisionnement | Commande fournisseur suggérée + export Excel |
+| État du stock | Stock dépôt, entrées/sorties 30j, valeur du stock + export Excel |
 | Catalogue produits | Stock, couverture, DLC restante, statut |
 | Clients & Tournées | Points de vente groupés par tournée |
 | Types de clients | Répartition des clients par type de commerce |

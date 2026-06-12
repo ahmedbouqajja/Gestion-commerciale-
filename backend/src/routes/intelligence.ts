@@ -9,6 +9,7 @@ import {
   getProductForecast,
   getRecommendations,
   getReorderSuggestions,
+  getStockReport,
   listProducts,
   listStores,
 } from "../services/intelligence.js";
@@ -88,6 +89,37 @@ router.get("/reorders.xlsx", async (req, res, next) => {
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", `attachment; filename="commande_fournisseur_${new Date().toISOString().slice(0, 10)}.xlsx"`);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.get("/stock-report", async (req, res, next) => {
+  try {
+    res.json({ rows: await getStockReport(req.auth?.tenantId) });
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.get("/stock-report.xlsx", async (req, res, next) => {
+  try {
+    const rows = await getStockReport(req.auth?.tenantId);
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("État du stock");
+    sheet.addRow(["SKU", "Produit", "Stock", "Entrées 30j", "Sorties 30j", "Valeur stock (MAD)"]);
+    sheet.getRow(1).font = { bold: true };
+    sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEFF1F5" } };
+    for (const r of rows) sheet.addRow([r.sku, r.name, r.stock, r.entrees30, r.sorties30, r.stockValue]);
+    const total = rows.reduce((s, r) => s + r.stockValue, 0);
+    const totalRow = sheet.addRow(["", "", "", "", "Total", total]);
+    totalRow.font = { bold: true };
+    sheet.columns.forEach((c, i) => (c.width = i === 1 ? 28 : 16));
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="etat_stock_${new Date().toISOString().slice(0, 10)}.xlsx"`);
     await workbook.xlsx.write(res);
     res.end();
   } catch (e) {

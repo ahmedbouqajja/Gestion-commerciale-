@@ -7,6 +7,7 @@ import { clearToken, getToken } from "@/lib/api";
 import {
   BadgePercent,
   Bot,
+  Boxes,
   Building2,
   CreditCard,
   FileText,
@@ -26,6 +27,7 @@ const NAV = [
   { href: "/promotions", label: "Promotions IA", icon: BadgePercent },
   { href: "/forecasts", label: "Prévisions", icon: LineChart },
   { href: "/reorders", label: "Réapprovisionnement", icon: ShoppingCart },
+  { href: "/stock", label: "État du stock", icon: Boxes },
   { href: "/products", label: "Catalogue produits", icon: Package },
   { href: "/stores", label: "Clients & Tournées", icon: Store },
   { href: "/import", label: "Importation", icon: Upload },

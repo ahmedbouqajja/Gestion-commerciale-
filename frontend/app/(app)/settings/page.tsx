@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, type BillingInfo } from "@/lib/api";
-import { Building2, CloudSun, Globe, KeyRound, Plug, SlidersHorizontal } from "lucide-react";
+import { Building2, CheckCircle2, CloudSun, Globe, KeyRound, Loader2, Plug, SlidersHorizontal, X } from "lucide-react";
 
 const COUNTRY_LABELS: Record<string, string> = {
   MA: "Maroc",
@@ -21,6 +21,7 @@ function formatDate(d: string | null) {
 export default function SettingsPage() {
   const [billing, setBilling] = useState<BillingInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showPw, setShowPw] = useState(false);
 
   useEffect(() => {
     api.billing().then(setBilling).catch((e) => setError(e.message));
@@ -80,12 +81,9 @@ export default function SettingsPage() {
           {/* Sécurité */}
           <Section icon={KeyRound} title="Sécurité du compte">
             <p className="text-sm text-slate-600">
-              Gérez l'accès via la page Utilisateurs. Le changement de mot de passe en libre-service arrive bientôt.
+              Gérez l'accès via la page Utilisateurs et modifiez votre mot de passe ci-dessous.
             </p>
-            <button
-              disabled
-              className="mt-3 w-fit cursor-default rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-400"
-            >
+            <button onClick={() => setShowPw(true)} className="btn-primary mt-3 w-fit">
               Changer le mot de passe
             </button>
           </Section>
@@ -98,6 +96,85 @@ export default function SettingsPage() {
           </Section>
         </div>
       )}
+
+      {showPw && <ChangePasswordModal onClose={() => setShowPw(false)} />}
+    </div>
+  );
+}
+
+function ChangePasswordModal({ onClose }: { onClose: () => void }) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (newPassword !== confirm) {
+      setError("Les deux mots de passe ne correspondent pas.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await api.changePassword(currentPassword, newPassword);
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Changement impossible.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold">Changer le mot de passe</h2>
+          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {done ? (
+          <div className="mt-6 flex flex-col items-center gap-3 py-6 text-center">
+            <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+            <p className="font-medium">Mot de passe modifié avec succès.</p>
+            <button onClick={onClose} className="btn-primary mt-2">Fermer</button>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="mt-5 space-y-4">
+            <PwInput label="Mot de passe actuel" value={currentPassword} onChange={setCurrentPassword} />
+            <PwInput label="Nouveau mot de passe" value={newPassword} onChange={setNewPassword} hint="8 caractères minimum" />
+            <PwInput label="Confirmer le nouveau mot de passe" value={confirm} onChange={setConfirm} />
+            {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={onClose} className="btn-ghost">Annuler</button>
+              <button type="submit" disabled={loading} className="btn-primary">
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />} Enregistrer
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PwInput({ label, value, onChange, hint }: { label: string; value: string; onChange: (v: string) => void; hint?: string }) {
+  return (
+    <div>
+      <label className="text-sm font-medium text-slate-700">{label}</label>
+      <input
+        type="password"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required
+        className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+      />
+      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
     </div>
   );
 }
