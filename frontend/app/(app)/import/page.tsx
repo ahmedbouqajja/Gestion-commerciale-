@@ -5,10 +5,10 @@ import { api, type ImportEntity, type ImportReport } from "@/lib/api";
 import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, Loader2, Upload } from "lucide-react";
 
 const ENTITIES: { key: ImportEntity; label: string; hint: string }[] = [
-  { key: "sales", label: "Ventes", hint: "sku, code magasin, date, quantité, CA" },
+  { key: "sales", label: "Ventes", hint: "sku, code client, date, quantité, CA" },
   { key: "products", label: "Produits", hint: "sku, nom, catégorie, prix" },
-  { key: "stores", label: "Magasins", hint: "code, nom, enseigne, ville" },
-  { key: "stock", label: "Stocks", hint: "sku, code magasin, quantité, seuil" },
+  { key: "stores", label: "Clients", hint: "code, nom, type, ville" },
+  { key: "stock", label: "Stocks", hint: "sku, code client, quantité, seuil" },
 ];
 
 export default function ImportPage() {

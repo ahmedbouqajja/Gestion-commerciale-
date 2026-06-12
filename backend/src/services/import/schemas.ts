@@ -73,52 +73,58 @@ export const ENTITY_DEFS: Record<ImportEntity, EntityDef> = {
       seasonal: boolish,
     }),
     templateHeaders: ["sku", "nom", "categorie", "prix_unitaire", "prix_achat", "saisonnier"],
-    templateRows: [["LAIT-450", "Lait 450 ml", "Produits laitiers", "4.5", "3.2", "non"]],
+    templateRows: [
+      ["LAIT-UHT-1L", "Lait UHT demi-écrémé 1 L", "Produits laitiers", "7", "5.2", "non"],
+      ["RAIB-180", "Raïb 180 g", "Produits laitiers", "3.5", "2.3", "non"],
+    ],
   },
 
   stores: {
-    label: "Magasins",
+    label: "Clients",
     aliases: {
-      code: ["code", "codemagasin", "storecode"],
-      name: ["name", "nom", "magasin", "nommagasin"],
-      banner: ["banner", "enseigne"],
+      code: ["code", "codemagasin", "storecode", "codeclient"],
+      name: ["name", "nom", "magasin", "nommagasin", "client"],
+      banner: ["banner", "enseigne", "type", "typepdv"],
       city: ["city", "ville"],
       region: ["region"],
     },
     schema: z.object({
-      code: str.pipe(z.string().min(1, "Code magasin requis.")),
+      code: str.pipe(z.string().min(1, "Code client requis.")),
       name: str.pipe(z.string().min(1, "Nom requis.")),
       banner: str.optional(),
       city: str.optional(),
       region: str.optional(),
     }),
-    templateHeaders: ["code", "nom", "enseigne", "ville", "region"],
-    templateRows: [["CASA-01", "Casablanca Maârif", "Marjane", "Casablanca", "Casablanca-Settat"]],
+    templateHeaders: ["code", "nom", "type", "ville", "region"],
+    templateRows: [
+      ["CASA-SUP01", "Supérette Al Baraka", "Supérette", "Casablanca", "Casablanca-Settat"],
+      ["RABAT-GMS01", "Agdal Market", "Grande surface", "Rabat", "Rabat-Salé-Kénitra"],
+    ],
   },
 
   stock: {
     label: "Stocks",
     aliases: {
       productSku: ["productsku", "sku", "codeproduit", "produit", "reference"],
-      storeCode: ["storecode", "code", "magasin", "codemagasin"],
+      storeCode: ["storecode", "code", "magasin", "codemagasin", "codeclient"],
       quantity: ["quantity", "quantite", "qte", "stock", "stockactuel"],
       reorderPoint: ["reorderpoint", "seuil", "seuilreappro", "pointcommande"],
     },
     schema: z.object({
       productSku: str.pipe(z.string().min(1, "SKU produit requis.")),
-      storeCode: str.pipe(z.string().min(1, "Code magasin requis.")),
+      storeCode: str.pipe(z.string().min(1, "Code client requis.")),
       quantity: num.pipe(z.number().min(0)),
       reorderPoint: num.optional().default(0),
     }),
-    templateHeaders: ["sku", "code_magasin", "quantite", "seuil_reappro"],
-    templateRows: [["LAIT-450", "CASA-01", "900", "600"]],
+    templateHeaders: ["sku", "code_client", "quantite", "seuil_reappro"],
+    templateRows: [["LAIT-UHT-1L", "CASA-SUP01", "4000", "1500"]],
   },
 
   sales: {
     label: "Ventes",
     aliases: {
       productSku: ["productsku", "sku", "codeproduit", "produit", "reference"],
-      storeCode: ["storecode", "magasin", "codemagasin"],
+      storeCode: ["storecode", "magasin", "codemagasin", "codeclient"],
       date: ["date", "jour", "datevente"],
       quantity: ["quantity", "quantite", "qte", "volume"],
       revenue: ["revenue", "ca", "chiffreaffaires", "montant", "total", "ventes"],
@@ -126,14 +132,14 @@ export const ENTITY_DEFS: Record<ImportEntity, EntityDef> = {
     },
     schema: z.object({
       productSku: str.pipe(z.string().min(1, "SKU produit requis.")),
-      storeCode: str.pipe(z.string().min(1, "Code magasin requis.")),
+      storeCode: str.pipe(z.string().min(1, "Code client requis.")),
       date: dateField,
       quantity: num.pipe(z.number().min(0)),
       revenue: num.pipe(z.number().min(0)),
       promoFlag: boolish,
     }),
-    templateHeaders: ["sku", "code_magasin", "date", "quantite", "ca", "promo"],
-    templateRows: [["LAIT-450", "CASA-01", "2026-06-01", "320", "1440", "non"]],
+    templateHeaders: ["sku", "code_client", "date", "quantite", "ca", "promo"],
+    templateRows: [["LAIT-UHT-1L", "CASA-SUP01", "2026-06-01", "620", "4340", "non"]],
   },
 };
 
