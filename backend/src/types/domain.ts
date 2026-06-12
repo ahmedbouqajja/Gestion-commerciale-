@@ -21,7 +21,7 @@ export type CalendarTag =
   | "HOLIDAYS"
   | "NEW_YEAR";
 
-export type Driver = "WEATHER" | "CALENDAR" | "SEASON" | "STOCKOUT" | "TREND";
+export type Driver = "WEATHER" | "CALENDAR" | "SEASON" | "STOCKOUT" | "TREND" | "EXPIRY";
 
 export type ActionType =
   | "DISCOUNT"
@@ -31,7 +31,8 @@ export type ActionType =
   | "TRANSFER"
   | "SUPPLIER_ORDER"
   | "SUBSTITUTE"
-  | "BUNDLE";
+  | "BUNDLE"
+  | "CLEARANCE"; // déstockage produit à DLC courte
 
 export interface RecommendedAction {
   type: ActionType;
@@ -53,6 +54,13 @@ export interface ProductSnapshot {
   stock: number;
   /** Reorder threshold. */
   reorderPoint: number;
+  /** Shelf life in days of a freshly received batch (DLC). Optional. */
+  shelfLifeDays?: number;
+  /**
+   * Days until the oldest on-hand batch reaches its expiry date (DLC).
+   * Drives the perishable-overstock / waste-prevention logic. Optional.
+   */
+  nearestExpiryDays?: number;
 }
 
 export interface WeatherForecast {
@@ -81,4 +89,6 @@ export interface Recommendation {
   drivers: Driver[];
   /** For stock-out risks: revenue threatened over the next week (MAD). */
   revenueAtRisk?: number;
+  /** For expiry risks: cost value (MAD) of stock likely to perish unsold. */
+  wasteAtRisk?: number;
 }

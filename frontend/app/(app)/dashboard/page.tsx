@@ -16,6 +16,10 @@ function formatMAD(n: number) {
   return new Intl.NumberFormat("fr-MA").format(Math.round(n)) + " MAD";
 }
 
+function formatKpi(k: { value: number; unit?: "MAD" | "%" }) {
+  return k.unit === "%" ? `${k.value}%` : formatMAD(k.value);
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [ctx, setCtx] = useState<EngineContext | null>(null);
@@ -45,7 +49,7 @@ export default function DashboardPage() {
         {data.kpis.map((k) => (
           <div key={k.label} className="card">
             <p className="text-sm text-slate-500">{k.label}</p>
-            <p className="mt-2 text-2xl font-bold">{formatMAD(k.value)}</p>
+            <p className="mt-2 text-2xl font-bold">{formatKpi(k)}</p>
             {k.changePct !== undefined && (
               <p className={`mt-1 inline-flex items-center gap-1 text-sm font-medium ${k.changePct >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                 {k.changePct >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
@@ -128,8 +132,8 @@ export default function DashboardPage() {
 
       {/* Stores */}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <StoreList title="Magasins performants" rows={data.topStores} positive />
-        <StoreList title="Magasins en difficulté" rows={data.strugglingStores} />
+        <StoreList title="Clients performants" rows={data.topStores} positive />
+        <StoreList title="Clients en difficulté" rows={data.strugglingStores} />
       </div>
     </Shell>
   );
@@ -152,7 +156,7 @@ function StoreList({ title, rows, positive }: { title: string; rows: DashboardSu
           ))}
         </ul>
       ) : (
-        <p className="mt-3 text-sm text-slate-400">{positive ? "—" : "Aucun magasin en difficulté."}</p>
+        <p className="mt-3 text-sm text-slate-400">{positive ? "—" : "Aucun client en difficulté."}</p>
       )}
     </div>
   );

@@ -24,8 +24,8 @@ export function tagsForWeather(tempC: number, rainMm: number): WeatherTag[] {
 
 /** Product categories that tend to spike under each weather condition. */
 export const WEATHER_AFFINITY: Record<WeatherTag, string[]> = {
-  HEATWAVE: ["BEVERAGE", "FROZEN"],
-  HEAT: ["BEVERAGE", "FROZEN", "FRESH"],
+  HEATWAVE: ["BEVERAGE", "FROZEN", "DAIRY"], // yaourts, raïb, lben très demandés
+  HEAT: ["BEVERAGE", "FROZEN", "FRESH", "DAIRY"],
   COLD: ["BEVERAGE", "GROCERY"], // café, thé, soupes
   RAIN: ["BEVERAGE", "GROCERY"],
   MILD: [],

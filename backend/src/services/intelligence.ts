@@ -92,6 +92,8 @@ export async function listProducts(tenantId?: string, asOf = new Date()) {
       stock: s.stock,
       reorderPoint: s.reorderPoint,
       daysOfCover: recentAvg ? Number((s.stock / recentAvg).toFixed(1)) : null,
+      shelfLifeDays: s.shelfLifeDays ?? null,
+      nearestExpiryDays: s.nearestExpiryDays ?? null,
     };
   });
 }

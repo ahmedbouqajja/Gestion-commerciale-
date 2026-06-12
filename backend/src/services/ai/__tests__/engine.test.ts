@@ -63,6 +63,32 @@ describe("recommendation engine", () => {
     const recs = generateRecommendations([opportunity, risk], { weather: hotWeather, events: [] });
     expect(recs[0].drivers).toContain("STOCKOUT");
   });
+
+  it("flags expiry risk for an overstocked short-dated batch and quantifies waste", () => {
+    // 100 u/j, batch expires in 3 days → only 300 sellable, 5000 in stock.
+    const perishable: ProductSnapshot = { ...baseProduct, weatherTags: [], seasonal: false, shelfLifeDays: 5, nearestExpiryDays: 3 };
+    const rec = analyzeProduct(perishable, { weather: [], events: [] });
+    expect(rec).not.toBeNull();
+    expect(rec!.drivers).toContain("EXPIRY");
+    // (5000 − 100×3) = 4700 u × 6 MAD coût = 28 200 MAD de pertes potentielles.
+    expect(rec!.wasteAtRisk).toBe(28200);
+    expect(rec!.actions.some((a) => a.type === "CLEARANCE")).toBe(true);
+  });
+
+  it("does not flag expiry when the batch can sell through in time", () => {
+    // Long shelf life remaining → nothing perishes.
+    const fresh: ProductSnapshot = { ...baseProduct, weatherTags: [], seasonal: false, shelfLifeDays: 30, nearestExpiryDays: 20 };
+    const rec = analyzeProduct(fresh, { weather: [], events: [] });
+    expect(rec).toBeNull();
+  });
+
+  it("prioritises stock-out over expiry (no contradictory signals)", () => {
+    // Low stock + short DLC: it will sell out, so it is a rupture, not a péremption.
+    const lowAndShort: ProductSnapshot = { ...baseProduct, stock: 50, weatherTags: [], nearestExpiryDays: 2 };
+    const rec = analyzeProduct(lowAndShort, { weather: [], events: [] });
+    expect(rec!.drivers).toContain("STOCKOUT");
+    expect(rec!.drivers).not.toContain("EXPIRY");
+  });
 });
 
 describe("forecast", () => {

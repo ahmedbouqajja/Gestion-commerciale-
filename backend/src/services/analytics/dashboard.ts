@@ -12,11 +12,17 @@ export interface SaleRecord {
   storeName: string;
   quantity: number;
   revenue: number;
+  /** Units returned by the client (invendus / casse / DLC dépassée). */
+  returnedQuantity?: number;
+  /** Value of returned goods (MAD), credited back to the client. */
+  returnedRevenue?: number;
 }
 
 export interface KpiCard {
   label: string;
   value: number;
+  /** Display unit. Defaults to the tenant currency (MAD) when omitted. */
+  unit?: "MAD" | "%";
   /** % change vs the comparison period (N-1), when available. */
   changePct?: number;
 }
@@ -55,6 +61,10 @@ function sum(records: SaleRecord[]): number {
   return records.reduce((a, r) => a + r.revenue, 0);
 }
 
+function sumReturns(records: SaleRecord[]): number {
+  return records.reduce((a, r) => a + (r.returnedRevenue ?? 0), 0);
+}
+
 function within(records: SaleRecord[], from: Date, to: Date): SaleRecord[] {
   return records.filter((r) => r.date >= from && r.date < to);
 }
@@ -85,12 +95,18 @@ export function buildDashboard(records: SaleRecord[], asOf: Date = new Date()): 
   const yearAgoMonthStart = new Date(monthStart.getTime() - 365 * DAY);
   const yearAgoNow = new Date(startOfDay.getTime() - 365 * DAY);
 
+  const monthRecords = within(records, monthStart, startOfDay);
   const dayRev = sum(within(records, startOfDay, new Date(startOfDay.getTime() + DAY)));
   const weekRev = sum(within(records, weekStart, startOfDay));
-  const monthRev = sum(within(records, monthStart, startOfDay));
+  const monthRev = sum(monthRecords);
 
   // Year-on-year comparison for the trailing 30 days.
   const monthRevN1 = sum(within(records, yearAgoMonthStart, yearAgoNow));
+
+  // Returns / invendus over the trailing 30 days (key KPI for a distributor of
+  // short-dated dairy goods). Rate is the share of delivered value credited back.
+  const monthReturns = sumReturns(monthRecords);
+  const returnRate = monthRev > 0 ? Number(((monthReturns / monthRev) * 100).toFixed(1)) : 0;
 
   const kpis: KpiCard[] = [
     { label: "CA du jour", value: round(dayRev) },
@@ -98,6 +114,11 @@ export function buildDashboard(records: SaleRecord[], asOf: Date = new Date()): 
     { label: "CA 30 jours", value: round(monthRev), changePct: pctChange(monthRev, monthRevN1) },
     { label: "Évolution vs N-1", value: round(monthRev - monthRevN1), changePct: pctChange(monthRev, monthRevN1) },
   ];
+  // Only surface the returns KPI when returns are actually tracked.
+  if (monthReturns > 0) {
+    kpis.push({ label: "Taux de retour 30 j", value: returnRate, unit: "%" });
+    kpis.push({ label: "Valeur retours 30 j", value: round(monthReturns) });
+  }
 
   // Movers: trailing 30 days vs the 30 days before that.
   const prevMonthStart = new Date(monthStart.getTime() - 30 * DAY);
@@ -107,7 +128,7 @@ export function buildDashboard(records: SaleRecord[], asOf: Date = new Date()): 
   const movers = buildMovers(current, previous);
   const stores = buildStores(current, previous);
 
-  const alerts = buildAlerts(movers, stores, dayRev, weekRev);
+  const alerts = buildAlerts(movers, stores, dayRev, weekRev, returnRate);
 
   return {
     kpis,
@@ -139,8 +160,21 @@ function buildStores(current: SaleRecord[], previous: SaleRecord[]): StorePerfor
   return stores.sort((a, b) => b.revenue - a.revenue);
 }
 
-function buildAlerts(movers: Mover[], stores: StorePerformance[], dayRev: number, weekRev: number): Alert[] {
+function buildAlerts(
+  movers: Mover[],
+  stores: StorePerformance[],
+  dayRev: number,
+  weekRev: number,
+  returnRate: number,
+): Alert[] {
   const alerts: Alert[] = [];
+  // A high return rate erodes margin and signals over-delivery or DLC issues.
+  if (returnRate >= 5) {
+    alerts.push({
+      level: returnRate >= 8 ? "CRITICAL" : "WARNING",
+      message: `Taux de retour élevé (${returnRate}%) — ajuster les quantités livrées et surveiller les DLC.`,
+    });
+  }
   const crashing = movers.filter((m) => m.changePct <= -30);
   for (const m of crashing.slice(0, 3)) {
     alerts.push({ level: "WARNING", message: `Chute des ventes de ${m.name} (${m.changePct}%).` });

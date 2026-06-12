@@ -1,12 +1,13 @@
-# Smart Promo AI — Intelligence Commerciale & Recommandation d'Offres
+# Smart Promo AI — Intelligence Commerciale pour la Distribution Laitière
 
-Plateforme SaaS d'aide à la décision commerciale pour le **retail** (distributeurs, grossistes,
-industriels, enseignes GMS, category managers). Elle analyse les ventes, la météo, les saisons, les
-jours fériés et les ruptures de stock pour recommander automatiquement les meilleures actions
-commerciales — un véritable **« Conseiller Commercial Intelligent »**.
+Plateforme SaaS d'aide à la décision pour les **distributeurs de lait et produits laitiers** qui
+livrent les points de vente (supérettes, épiceries, cafés-laiteries, grandes surfaces). Elle analyse
+les ventes par client, les **dates limites de consommation (DLC)**, la météo, les saisons et les
+ruptures de stock pour anticiper la demande, prévenir les ruptures et **réduire les invendus** — un
+véritable **« Conseiller Commercial Intelligent »**.
 
 > Pensé pour le marché **Maroc / Afrique** : calendrier marketing local (Ramadan, Aïd…), devise MAD,
-> interface en français.
+> interface en français. Les produits étant à **courte DLC**, la prévention de la perte est au cœur du moteur.
 
 ---
 
@@ -16,14 +17,17 @@ Le cœur intelligent du produit est **fonctionnel et testé**, exposé via une A
 
 | Domaine | Détail |
 | --- | --- |
-| 🧠 **Moteur de recommandation d'offres** | Fusionne 5 signaux — tendance des ventes, météo, calendrier marketing, saisonnalité, risque de rupture — pour produire des recommandations classées (promotion, tête de gondole, dégustation, réassort) avec **impact estimé**, **CA menacé** et **score de confiance**. |
+| 🧠 **Moteur de recommandation d'offres** | Fusionne 6 signaux — tendance des ventes, météo, calendrier marketing, saisonnalité, risque de rupture et **risque de péremption (DLC)** — pour produire des recommandations classées (promotion, déstockage, transfert, réassort) avec **impact estimé**, **CA menacé**, **perte évitée** et **score de confiance**. |
+| 🥛 **Gestion des DLC** | Détection des lots à date courte sur-stockés : calcul des unités qui risquent de périmer et recommandation automatique de **déstockage** / **transfert vers un client à forte rotation**, avec **perte estimée en MAD**. |
+| 🔄 **Suivi des retours / invendus** | KPI **taux de retour** et **valeur des retours** sur 30 j, avec alerte automatique au-delà d'un seuil pour ajuster les quantités livrées. |
 | 📥 **Importation Excel / CSV** | Import des ventes, produits, magasins et stocks avec **validation automatique** (en-têtes FR/EN tolérants, contrôle ligne par ligne, modèles téléchargeables, aperçu). Persistance multi-tenant via Prisma. |
 | 🔗 **Pipeline branché sur les données** | Dès qu'un tenant a des données (import/seed), le tableau de bord, les recommandations, les prévisions et les listes lisent **PostgreSQL** (par société) ; sinon repli automatique sur le jeu de démo. Catégorie déduite du libellé à l'import pour activer l'intelligence météo/calendrier. |
 | 📄 **Génération de rapports** | Rapports **PDF** (pdfkit) et **Excel** (exceljs) hebdo / mensuel / trimestriel, style corporate, avec **commentaires exécutifs auto-générés** (ancrés sur les données, enrichis par OpenAI si configuré) et aperçu dans l'app. |
-| 📊 **Tableau de bord IA** | CA jour / 7 j / 30 j, évolution vs N-1, produits en croissance/baisse, magasins performants/en difficulté, **alertes automatiques**. |
+| 📊 **Tableau de bord IA** | CA jour / 7 j / 30 j, évolution vs N-1, **taux de retour**, produits en croissance/baisse, clients performants/en difficulté, **alertes automatiques**. |
+| 🚚 **Clients & tournées** | Points de vente livrés rattachés à un **commercial**, une **tournée** et des **jours de livraison** ; analyse de performance par client. |
 | 🌤️ **Analyse météo** | Connecteur OpenWeatherMap (avec simulation déterministe sans clé) → tags commerciaux (canicule, pluie, froid). |
 | 📅 **Calendrier marketing** | Détection automatique Ramadan, Aïd Al Fitr, Aïd Al Adha, rentrée, été, hiver, fêtes — avec affinités produits. |
-| 📦 **Détection des ruptures** | Couverture de stock estimée + suggestions (commande fournisseur, transfert inter-magasin). |
+| 📦 **Détection des ruptures** | Couverture de stock estimée + suggestions (commande fournisseur, transfert depuis un client excédentaire). |
 | 📈 **Prévisions de ventes** | Tendance linéaire + saisonnalité hebdomadaire, horizons 7 / 30 / 90 / 365 jours. |
 | 💬 **Assistant conversationnel** | Réponses **ancrées sur les données calculées** (pas d'hallucination) ; reformulation OpenAI optionnelle. |
 | 🔐 **Multi-tenant & rôles** | Schéma Prisma multi-société (isolation par `tenantId`), JWT, 7 rôles, RBAC. |

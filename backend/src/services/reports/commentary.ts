@@ -22,13 +22,21 @@ const fmt = (n: number) => new Intl.NumberFormat("fr-MA").format(Math.round(n));
 
 export function buildCommentaryFacts(dashboard: DashboardSummary, recommendations: Recommendation[]): string[] {
   const p: string[] = [];
-  const ca30 = dashboard.kpis.find((k) => k.label.includes("30"))?.value ?? 0;
+  const ca30 = dashboard.kpis.find((k) => k.label.includes("CA 30"))?.value ?? 0;
   const n1 = dashboard.kpis.find((k) => k.label.includes("N-1"))?.changePct;
 
   p.push(
     `Sur les 30 derniers jours, le chiffre d'affaires s'établit à ${fmt(ca30)} MAD` +
       (n1 !== undefined ? `, soit une évolution de ${n1 >= 0 ? "+" : ""}${n1}% par rapport à l'année précédente.` : "."),
   );
+
+  const returnRate = dashboard.kpis.find((k) => k.label.includes("Taux de retour"));
+  if (returnRate) {
+    p.push(
+      `Le taux de retour (invendus / DLC dépassée) s'élève à ${returnRate.value}% sur la période` +
+        (returnRate.value >= 5 ? ", un niveau à réduire en ajustant les quantités livrées." : ", un niveau maîtrisé."),
+    );
+  }
 
   if (dashboard.topGrowers.length) {
     p.push(
@@ -58,7 +66,13 @@ export function buildCommentaryFacts(dashboard: DashboardSummary, recommendation
     p.push(`${stockouts.length} produit(s) présentent un risque de rupture, soit ~${fmt(atRisk)} MAD de CA menacé à sécuriser en priorité.`);
   }
 
-  const opportunities = recommendations.filter((r) => !r.drivers.includes("STOCKOUT")).slice(0, 3);
+  const expiries = recommendations.filter((r) => r.drivers.includes("EXPIRY"));
+  const waste = expiries.reduce((sum, r) => sum + (r.wasteAtRisk ?? 0), 0);
+  if (expiries.length) {
+    p.push(`${expiries.length} produit(s) à DLC courte sont en risque de péremption, soit ~${fmt(waste)} MAD de pertes à éviter par déstockage ou transfert.`);
+  }
+
+  const opportunities = recommendations.filter((r) => !r.drivers.includes("STOCKOUT") && !r.drivers.includes("EXPIRY")).slice(0, 3);
   if (opportunities.length) {
     p.push(
       `Opportunités commerciales à activer : ${opportunities

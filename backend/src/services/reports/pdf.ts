@@ -91,7 +91,8 @@ function kpiGrid(doc: PDFKit.PDFDocument, data: ReportData, width: number) {
   kpis.forEach((k, i) => {
     doc.roundedRect(x, y, cardW, cardH, 6).fill("#f1f5f9");
     doc.fillColor(MUTED).fontSize(9).font("Helvetica").text(k.label, x + 12, y + 10, { width: cardW - 24 });
-    doc.fillColor(SLATE).fontSize(15).font("Helvetica-Bold").text(`${fmt(k.value)} ${data.currency}`, x + 12, y + 26);
+    const kpiText = k.unit === "%" ? `${k.value}%` : `${fmt(k.value)} ${data.currency}`;
+    doc.fillColor(SLATE).fontSize(15).font("Helvetica-Bold").text(kpiText, x + 12, y + 26);
     if (k.changePct !== undefined) {
       doc
         .fillColor(k.changePct >= 0 ? GREEN : RED)

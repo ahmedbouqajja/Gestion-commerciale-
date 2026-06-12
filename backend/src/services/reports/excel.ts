@@ -22,7 +22,8 @@ export async function renderExcel(data: ReportData): Promise<Buffer> {
   synth.addRow([]);
   headerRow(synth, ["Indicateur", "Valeur", "Évol. N-1"]);
   for (const k of data.dashboard.kpis) {
-    const row = synth.addRow([k.label, `${Math.round(k.value)} ${data.currency}`, k.changePct !== undefined ? `${k.changePct}%` : "—"]);
+    const kpiValue = k.unit === "%" ? `${k.value}%` : `${Math.round(k.value)} ${data.currency}`;
+    const row = synth.addRow([k.label, kpiValue, k.changePct !== undefined ? `${k.changePct}%` : "—"]);
     if (k.changePct !== undefined) row.getCell(3).font = { color: { argb: k.changePct >= 0 ? "FF059669" : "FFDC2626" } };
   }
   synth.addRow([]);

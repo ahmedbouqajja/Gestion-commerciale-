@@ -24,15 +24,15 @@ const NAV = [
   { href: "/dashboard", label: "Tableau de bord", icon: Gauge },
   { href: "/promotions", label: "Promotions IA", icon: BadgePercent },
   { href: "/forecasts", label: "Prévisions", icon: LineChart },
-  { href: "/products", label: "Analyse Produits", icon: Package },
-  { href: "/stores", label: "Analyse Magasins", icon: Store },
+  { href: "/products", label: "Catalogue produits", icon: Package },
+  { href: "/stores", label: "Clients & Tournées", icon: Store },
   { href: "/import", label: "Importation", icon: Upload },
   { href: "/reports", label: "Rapports", icon: FileText },
   { href: "/assistant", label: "Assistant IA", icon: Bot },
 ];
 
 const NAV_SECONDARY = [
-  { href: "/banners", label: "Enseignes", icon: Building2 },
+  { href: "/banners", label: "Types de clients", icon: Building2 },
   { href: "/users", label: "Utilisateurs", icon: Users },
   { href: "/billing", label: "Facturation", icon: CreditCard },
   { href: "/settings", label: "Paramètres", icon: Settings },

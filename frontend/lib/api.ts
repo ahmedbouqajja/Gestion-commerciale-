@@ -141,6 +141,7 @@ export interface AuthUser {
 export interface KpiCard {
   label: string;
   value: number;
+  unit?: "MAD" | "%";
   changePct?: number;
 }
 export interface Mover {
@@ -199,6 +200,7 @@ export interface Recommendation {
   confidence: number;
   drivers: string[];
   revenueAtRisk?: number;
+  wasteAtRisk?: number;
 }
 export interface ProductRow {
   sku: string;
@@ -209,6 +211,8 @@ export interface ProductRow {
   stock: number;
   reorderPoint: number;
   daysOfCover: number | null;
+  shelfLifeDays: number | null;
+  nearestExpiryDays: number | null;
 }
 export interface StoreRow {
   code: string;
@@ -216,6 +220,9 @@ export interface StoreRow {
   banner: string;
   city: string;
   region: string;
+  salesRep?: string;
+  route?: string;
+  deliveryDays?: string[];
 }
 export interface ForecastPoint {
   dayOffset: number;

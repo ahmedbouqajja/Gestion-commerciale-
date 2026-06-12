@@ -22,8 +22,8 @@ const C = {
 
 async function main() {
   const asOf = new Date();
-  console.log(C.title("═══ SMART PROMO AI — Conseiller Commercial Intelligent ═══"));
-  console.log(C.dim(`Date d'analyse : ${asOf.toISOString().slice(0, 10)} | Données : démo synthétique`));
+  console.log(C.title("═══ SMART PROMO AI — Conseiller du Distributeur Laitier ═══"));
+  console.log(C.dim(`Date d'analyse : ${asOf.toISOString().slice(0, 10)} | Données : démo synthétique (produits laitiers)`));
 
   // ── 1. Dashboard ──
   const records = buildSaleRecords(90, asOf);
@@ -31,7 +31,8 @@ async function main() {
   console.log(C.title("1. Tableau de bord IA"));
   for (const k of dash.kpis) {
     const chg = k.changePct !== undefined ? ` (${k.changePct >= 0 ? C.green(`+${k.changePct}%`) : C.red(`${k.changePct}%`)})` : "";
-    console.log(`   • ${k.label.padEnd(18)} : ${k.value.toLocaleString("fr-MA")} MAD${chg}`);
+    const val = k.unit === "%" ? `${k.value}%` : `${k.value.toLocaleString("fr-MA")} MAD`;
+    console.log(`   • ${k.label.padEnd(20)} : ${val}${chg}`);
   }
   console.log(C.dim("   Top croissance : ") + dash.topGrowers.map((m) => `${m.name} (+${m.changePct}%)`).slice(0, 3).join(", "));
   console.log(C.dim("   En baisse      : ") + dash.topDecliners.map((m) => `${m.name} (${m.changePct}%)`).slice(0, 3).join(", "));
@@ -58,15 +59,17 @@ async function main() {
     console.log(`   Actions  : ${r.actions.map((a) => a.label).join(" · ")}`);
     const impact = r.revenueAtRisk
       ? `${C.red(`CA protégé : ~${r.revenueAtRisk.toLocaleString("fr-MA")} MAD`)}`
-      : `${C.green(`+${r.estimatedUplift}% ventes`)}`;
+      : r.wasteAtRisk
+        ? `${C.yellow(`Perte évitée : ~${r.wasteAtRisk.toLocaleString("fr-MA")} MAD`)}`
+        : `${C.green(`+${r.estimatedUplift}% ventes`)}`;
     console.log(`   Impact   : ${impact}  |  Confiance : ${(r.confidence * 100).toFixed(0)}%`);
   }
 
   // ── 4. Forecast ──
-  const eau = products.find((p) => p.sku === "EAU-1.5L")!;
-  console.log(C.title("4. Prévision de demande — Eau minérale 1,5 L"));
+  const ref = products.find((p) => p.sku === "LAIT-UHT-1L")!;
+  console.log(C.title(`4. Prévision de demande — ${ref.name}`));
   for (const h of [7, 30, 90]) {
-    const f = forecastDemand(eau.salesHistory, h);
+    const f = forecastDemand(ref.salesHistory, h);
     console.log(`   ${String(h).padStart(3)} j : ${Math.round(f.total).toLocaleString("fr-MA")} u  (~${f.dailyAverage}/j, tendance ${f.trendPerDay >= 0 ? "+" : ""}${f.trendPerDay}/j, conf. ${(f.confidence * 100).toFixed(0)}%)`);
   }
 

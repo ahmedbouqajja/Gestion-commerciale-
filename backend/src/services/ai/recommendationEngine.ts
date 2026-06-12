@@ -88,6 +88,7 @@ export function analyzeProduct(p: ProductSnapshot, ctx: EngineContext): Recommen
   let uplift = 0;
   let confidence = 0.4;
   let revenueAtRisk: number | undefined;
+  let wasteAtRisk: number | undefined;
 
   // ── Stock-out risk (highest priority — protects revenue) ──
   const RESTOCK_HORIZON_DAYS = 7; // assumed supplier lead time
@@ -101,8 +102,41 @@ export function analyzeProduct(p: ProductSnapshot, ctx: EngineContext): Recommen
       `Couverture de stock estimée à ${trend.daysOfCover} jour(s) au rythme de vente actuel (${trend.recentAvg.toFixed(0)} u/j). CA menacé sur 7 j : ~${revenueAtRisk.toLocaleString("fr-MA")} MAD.`,
     );
     actions.push({ type: "SUPPLIER_ORDER", label: "Passer une commande fournisseur en urgence" });
-    actions.push({ type: "TRANSFER", label: "Transfert inter-magasin depuis un point de vente excédentaire" });
+    actions.push({ type: "TRANSFER", label: "Transfert depuis un client excédentaire" });
     confidence += 0.25;
+  }
+
+  // ── Expiry / DLC risk (perishable overstock — prevents waste) ──
+  // Only when there is no stock-out risk: an overstocked perishable batch may
+  // reach its date limite (DLC) before it can be sold through. Critical for a
+  // dairy distributor where most SKUs are short-dated.
+  const EXPIRY_HORIZON_DAYS = 7; // react when a batch expires within a week
+  let expiryRisk = false;
+  if (
+    !stockoutRisk &&
+    p.nearestExpiryDays !== undefined &&
+    p.nearestExpiryDays >= 0 &&
+    p.nearestExpiryDays <= EXPIRY_HORIZON_DAYS &&
+    trend.recentAvg > 0
+  ) {
+    // Units that cannot realistically sell through before the batch expires.
+    const sellable = trend.recentAvg * p.nearestExpiryDays;
+    const expiringUnits = Math.max(0, Math.round(p.stock - sellable));
+    if (expiringUnits > 0) {
+      expiryRisk = true;
+      drivers.push("EXPIRY");
+      wasteAtRisk = Math.round(expiringUnits * p.costPrice);
+      reasons.push(
+        `Date limite proche (${p.nearestExpiryDays} j). Au rythme actuel (${trend.recentAvg.toFixed(0)} u/j), ~${expiringUnits.toLocaleString("fr-MA")} u risquent de périmer — perte estimée ~${wasteAtRisk.toLocaleString("fr-MA")} MAD.`,
+      );
+      // Deeper discount the closer the DLC, to accelerate sell-through.
+      const clearancePct = p.nearestExpiryDays <= 2 ? 30 : p.nearestExpiryDays <= 4 ? 20 : 15;
+      actions.push({ type: "CLEARANCE", label: `Déstockage -${clearancePct}% (DLC courte)`, value: clearancePct });
+      actions.push({ type: "TRANSFER", label: "Transfert vers un client à forte rotation" });
+      actions.push({ type: "BUNDLE", label: "Offre groupée pour écouler le lot" });
+      uplift += Math.round(clearancePct * 0.8);
+      confidence += 0.3;
+    }
   }
 
   // ── Weather-driven demand ──
@@ -149,7 +183,7 @@ export function analyzeProduct(p: ProductSnapshot, ctx: EngineContext): Recommen
 
   // ── Derive commercial actions from a positive-demand signal ──
   const positiveDemand = wMatch.matched || !!cEvent || trend.growthPct >= 15;
-  if (positiveDemand && !stockoutRisk) {
+  if (positiveDemand && !stockoutRisk && !expiryRisk) {
     const discount = trend.growthPct <= -15 ? 15 : 10;
     actions.unshift({ type: "DISCOUNT", label: `Promotion -${discount}%`, value: discount });
     actions.push({ type: "ENDCAP", label: "Mise en avant tête de gondole" });
@@ -160,7 +194,7 @@ export function analyzeProduct(p: ProductSnapshot, ctx: EngineContext): Recommen
     // Discount-driven elasticity uplift.
     uplift += Math.round(discount * 0.8);
   }
-  if (trend.growthPct <= -15 && !positiveDemand && !stockoutRisk) {
+  if (trend.growthPct <= -15 && !positiveDemand && !stockoutRisk && !expiryRisk) {
     actions.push({ type: "DISCOUNT", label: "Promotion -15% pour relancer les ventes", value: 15 });
     actions.push({ type: "BUNDLE", label: "Offre groupée avec un produit complémentaire" });
   }
@@ -170,7 +204,9 @@ export function analyzeProduct(p: ProductSnapshot, ctx: EngineContext): Recommen
 
   const title = stockoutRisk
     ? `Risque de rupture — ${p.name}`
-    : `Opportunité commerciale — ${p.name}`;
+    : expiryRisk
+      ? `Risque de péremption — ${p.name}`
+      : `Opportunité commerciale — ${p.name}`;
 
   return {
     sku: p.sku,
@@ -182,6 +218,7 @@ export function analyzeProduct(p: ProductSnapshot, ctx: EngineContext): Recommen
     confidence,
     drivers: [...new Set(drivers)],
     revenueAtRisk,
+    wasteAtRisk,
   };
 }
 
@@ -194,12 +231,16 @@ export function generateRecommendations(products: ProductSnapshot[], ctx: Engine
     .map((p) => analyzeProduct(p, ctx))
     .filter((r): r is Recommendation => r !== null);
 
+  // Urgent = revenue-protecting (stock-out) or waste-preventing (expiry).
+  const isUrgent = (r: Recommendation) => r.drivers.includes("STOCKOUT") || r.drivers.includes("EXPIRY");
+  const amountAtRisk = (r: Recommendation) => Math.max(r.revenueAtRisk ?? 0, r.wasteAtRisk ?? 0);
+
   return recs.sort((a, b) => {
-    const aStock = a.drivers.includes("STOCKOUT") ? 1 : 0;
-    const bStock = b.drivers.includes("STOCKOUT") ? 1 : 0;
-    if (aStock !== bStock) return bStock - aStock;
-    // Among stock-out risks, the most threatened revenue comes first.
-    if (aStock && bStock) return (b.revenueAtRisk ?? 0) - (a.revenueAtRisk ?? 0);
+    const aUrgent = isUrgent(a) ? 1 : 0;
+    const bUrgent = isUrgent(b) ? 1 : 0;
+    if (aUrgent !== bUrgent) return bUrgent - aUrgent;
+    // Among urgent risks, the most money at risk (lost sales or waste) comes first.
+    if (aUrgent && bUrgent) return amountAtRisk(b) - amountAtRisk(a);
     return b.estimatedUplift * b.confidence - a.estimatedUplift * a.confidence;
   });
 }

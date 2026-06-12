@@ -27,6 +27,8 @@ export async function getDbSaleRecords(tenantId: string, daysBack = 400, asOf = 
       date: true,
       quantity: true,
       revenue: true,
+      returnedQty: true,
+      returnedRevenue: true,
       product: { select: { sku: true, name: true } },
       store: { select: { code: true, name: true } },
     },
@@ -39,6 +41,8 @@ export async function getDbSaleRecords(tenantId: string, daysBack = 400, asOf = 
     storeName: s.store.name,
     quantity: s.quantity,
     revenue: s.revenue,
+    returnedQuantity: s.returnedQty,
+    returnedRevenue: s.returnedRevenue,
   }));
 }
 
@@ -49,12 +53,13 @@ export async function getDbProductSnapshots(tenantId: string, historyDays = 90, 
   const [products, stockLevels, sales] = await Promise.all([
     prisma.product.findMany({
       where: { tenantId, active: true },
-      select: { id: true, sku: true, name: true, unitPrice: true, costPrice: true, seasonal: true, weatherTags: true, category: { select: { kind: true } } },
+      select: { id: true, sku: true, name: true, unitPrice: true, costPrice: true, seasonal: true, shelfLifeDays: true, weatherTags: true, category: { select: { kind: true } } },
     }),
     prisma.stockLevel.groupBy({
       by: ["productId"],
       where: { tenantId },
       _sum: { quantity: true, reorderPoint: true },
+      _min: { expiryDate: true },
     }),
     prisma.sale.findMany({
       where: { tenantId, date: { gte: new Date(start) } },
@@ -74,8 +79,13 @@ export async function getDbProductSnapshots(tenantId: string, historyDays = 90, 
     if (arr) arr[idx] += sale.quantity;
   }
 
+  const today = startOfDay(asOf).getTime();
   return products.map((p) => {
     const stock = stockByProduct.get(p.id);
+    const nearestExpiry = stock?._min.expiryDate;
+    const nearestExpiryDays = nearestExpiry
+      ? Math.max(0, Math.round((startOfDay(nearestExpiry).getTime() - today) / DAY))
+      : undefined;
     return {
       sku: p.sku,
       name: p.name,
@@ -87,6 +97,8 @@ export async function getDbProductSnapshots(tenantId: string, historyDays = 90, 
       salesHistory: historyByProduct.get(p.id) ?? [],
       stock: stock?._sum.quantity ?? 0,
       reorderPoint: stock?._sum.reorderPoint ?? 0,
+      shelfLifeDays: p.shelfLifeDays ?? undefined,
+      nearestExpiryDays,
     };
   });
 }
@@ -94,7 +106,7 @@ export async function getDbProductSnapshots(tenantId: string, historyDays = 90, 
 export async function listDbStores(tenantId: string) {
   const stores = await prisma.store.findMany({
     where: { tenantId, active: true },
-    select: { code: true, name: true, banner: true, city: true, region: true },
+    select: { code: true, name: true, banner: true, city: true, region: true, salesRep: true, route: true, deliveryDays: true },
     orderBy: { name: "asc" },
   });
   return stores.map((s) => ({
@@ -103,6 +115,9 @@ export async function listDbStores(tenantId: string) {
     banner: s.banner ?? "",
     city: s.city ?? "",
     region: s.region ?? "",
+    salesRep: s.salesRep ?? "",
+    route: s.route ?? "",
+    deliveryDays: s.deliveryDays ?? [],
   }));
 }
 

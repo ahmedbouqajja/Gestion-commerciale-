@@ -38,7 +38,7 @@ export default function LoginPage() {
 
         <div className="card">
           <h1 className="text-2xl font-bold">Connexion</h1>
-          <p className="mt-1 text-sm text-slate-500">Accédez à votre conseiller commercial intelligent.</p>
+          <p className="mt-1 text-sm text-slate-500">Accédez à votre conseiller de distribution laitière.</p>
 
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <div>

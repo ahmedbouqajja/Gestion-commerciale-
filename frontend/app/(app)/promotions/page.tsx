@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { api, type Recommendation } from "@/lib/api";
-import { AlertTriangle, ShieldAlert, Sparkles, TrendingUp } from "lucide-react";
+import { AlertTriangle, CalendarClock, ShieldAlert, Sparkles, Timer, TrendingUp } from "lucide-react";
 
 const DRIVER_LABELS: Record<string, string> = {
   WEATHER: "Météo",
   CALENDAR: "Calendrier",
   SEASON: "Saison",
   STOCKOUT: "Rupture",
+  EXPIRY: "Péremption (DLC)",
   TREND: "Tendance",
 };
 
@@ -32,13 +33,15 @@ export default function PromotionsPage() {
 
       <div className="grid gap-4">
         {recs?.map((r) => {
-          const isRisk = r.drivers.includes("STOCKOUT");
+          const isStockout = r.drivers.includes("STOCKOUT");
+          const isExpiry = r.drivers.includes("EXPIRY");
+          const accent = isStockout ? "bg-red-50 text-red-600" : isExpiry ? "bg-amber-50 text-amber-600" : "bg-brand-50 text-brand-600";
           return (
             <div key={r.sku} className="card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  <span className={`mt-0.5 grid h-9 w-9 place-items-center rounded-xl ${isRisk ? "bg-red-50 text-red-600" : "bg-brand-50 text-brand-600"}`}>
-                    {isRisk ? <AlertTriangle className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+                  <span className={`mt-0.5 grid h-9 w-9 place-items-center rounded-xl ${accent}`}>
+                    {isStockout ? <AlertTriangle className="h-5 w-5" /> : isExpiry ? <CalendarClock className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
                   </span>
                   <div>
                     <h3 className="font-semibold">{r.title}</h3>
@@ -52,6 +55,13 @@ export default function PromotionsPage() {
                         <ShieldAlert className="h-4 w-4" /> {new Intl.NumberFormat("fr-MA").format(r.revenueAtRisk)} MAD
                       </div>
                       <div className="text-xs text-slate-400">CA menacé · confiance {(r.confidence * 100).toFixed(0)}%</div>
+                    </>
+                  ) : r.wasteAtRisk ? (
+                    <>
+                      <div className="inline-flex items-center gap-1 text-lg font-bold text-amber-600">
+                        <Timer className="h-4 w-4" /> {new Intl.NumberFormat("fr-MA").format(r.wasteAtRisk)} MAD
+                      </div>
+                      <div className="text-xs text-slate-400">perte évitée · confiance {(r.confidence * 100).toFixed(0)}%</div>
                     </>
                   ) : (
                     <>

@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { BarChart3, Brain, CloudSun, Gauge, LineChart, PackageX, ShieldCheck, Sparkles } from "lucide-react";
+import { BarChart3, Brain, CalendarClock, CloudSun, Gauge, LineChart, PackageX, RotateCcw, ShieldCheck, Sparkles } from "lucide-react";
 
 const FEATURES = [
-  { icon: Gauge, title: "Tableau de bord IA", desc: "CA jour/semaine/mois, évolution vs N-1, produits et magasins suivis en temps réel avec alertes automatiques." },
-  { icon: Sparkles, title: "Générateur d'offres", desc: "Le moteur recommande la promotion, la mise en avant et le réassort optimaux avec un impact estimé." },
-  { icon: CloudSun, title: "Analyse météo & calendrier", desc: "Canicule, pluie, Ramadan, Aïd, rentrée… les pics de demande anticipés avant qu'ils n'arrivent." },
-  { icon: LineChart, title: "Prévisions de ventes", desc: "Projections de demande à 7, 30, 90 et 365 jours pour piloter stock et chiffre d'affaires." },
-  { icon: PackageX, title: "Détection des ruptures", desc: "Risque de rupture détecté tôt, avec suggestions de commande, transfert ou produit de substitution." },
-  { icon: Brain, title: "Assistant conversationnel", desc: "« Quel produit promouvoir la semaine prochaine ? » — des réponses chiffrées et un plan d'action." },
+  { icon: Gauge, title: "Tableau de bord IA", desc: "CA jour/semaine/mois, évolution vs N-1, taux de retour et clients suivis en temps réel avec alertes automatiques." },
+  { icon: CalendarClock, title: "Gestion des DLC", desc: "Détection des lots à date courte et recommandation automatique de déstockage ou transfert pour éviter la perte." },
+  { icon: RotateCcw, title: "Réduction des invendus", desc: "Suivi du taux de retour et ajustement des quantités livrées par client pour protéger votre marge." },
+  { icon: CloudSun, title: "Météo & calendrier", desc: "Canicule, Ramadan, Aïd, été… les pics de demande sur le frais et les laitages anticipés avant qu'ils n'arrivent." },
+  { icon: LineChart, title: "Prévisions par client", desc: "Projections de demande à 7, 30, 90 et 365 jours pour planifier vos tournées et vos commandes." },
+  { icon: PackageX, title: "Détection des ruptures", desc: "Risque de rupture détecté tôt, avec suggestions de commande fournisseur ou de transfert inter-clients." },
 ];
 
 export default function LandingPage() {
@@ -28,14 +28,14 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="mx-auto max-w-6xl px-6 pb-16 pt-12 text-center">
         <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-1.5 text-sm font-medium text-brand-700">
-          <Sparkles className="h-4 w-4" /> Conseiller commercial intelligent pour le retail
+          <Sparkles className="h-4 w-4" /> Conseiller intelligent pour distributeurs de produits laitiers
         </span>
         <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-          Augmentez votre chiffre d'affaires et réduisez vos ruptures grâce à l'IA
+          Vendez plus, jetez moins : l'IA au service de votre distribution laitière
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-600">
-          Smart Promo AI analyse vos ventes, la météo, les saisons et les ruptures de stock pour recommander
-          automatiquement les meilleures actions commerciales — pensé pour les distributeurs, grossistes et enseignes GMS au Maroc et en Afrique.
+          Smart Promo AI analyse vos ventes par client, les DLC, la météo et les saisons pour anticiper la demande,
+          prévenir les ruptures et réduire les invendus — pensé pour les distributeurs de lait et produits laitiers au Maroc et en Afrique.
         </p>
         <div className="mt-8 flex items-center justify-center gap-3">
           <Link href="/login" className="btn-primary px-6 py-3 text-base">Essayer la démo</Link>
@@ -62,7 +62,7 @@ export default function LandingPage() {
         <div className="mx-auto grid max-w-6xl gap-6 px-6 py-12 sm:grid-cols-3">
           {[
             { icon: BarChart3, stat: "+18%", label: "de ventes sur les offres recommandées" },
-            { icon: PackageX, stat: "-35%", label: "de ruptures grâce à la détection précoce" },
+            { icon: RotateCcw, stat: "-30%", label: "d'invendus grâce au pilotage des DLC" },
             { icon: ShieldCheck, stat: "100%", label: "isolation des données multi-sociétés" },
           ].map((s) => (
             <div key={s.label} className="flex items-center gap-4">
@@ -77,7 +77,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="mx-auto max-w-6xl px-6 py-10 text-sm text-slate-500">
-        © {new Date().getFullYear()} Smart Promo AI — Intelligence commerciale & recommandation d'offres.
+        © {new Date().getFullYear()} Smart Promo AI — Intelligence commerciale pour la distribution laitière.
       </footer>
     </main>
   );

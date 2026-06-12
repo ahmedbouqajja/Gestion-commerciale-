@@ -4,7 +4,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../src/utils/auth.js";
-import { PRODUCT_SEEDS, STORE_SEEDS, buildHistory } from "../src/services/sampleData.js";
+import { PRODUCT_SEEDS, STORE_SEEDS, STORE_FACTORS, buildHistory } from "../src/services/sampleData.js";
 
 const prisma = new PrismaClient();
 
@@ -55,7 +55,17 @@ async function main() {
       await prisma.store.upsert({
         where: { tenantId_code: { tenantId: tenant.id, code: s.code } },
         update: {},
-        create: { tenantId: tenant.id, code: s.code, name: s.name, banner: s.banner, city: s.city, region: s.region },
+        create: {
+          tenantId: tenant.id,
+          code: s.code,
+          name: s.name,
+          banner: s.banner,
+          city: s.city,
+          region: s.region,
+          salesRep: s.salesRep,
+          route: s.route,
+          deliveryDays: s.deliveryDays,
+        },
       }),
     );
   }
@@ -66,7 +76,7 @@ async function main() {
 
   const now = new Date();
   const days = 90;
-  const storeFactors = [1, 0.8, 0.6, 0.5];
+  const storeFactors = STORE_FACTORS;
 
   for (const ps of PRODUCT_SEEDS) {
     const product = await prisma.product.upsert({
@@ -80,16 +90,21 @@ async function main() {
         unitPrice: ps.unitPrice,
         costPrice: ps.costPrice,
         seasonal: ps.seasonal,
+        shelfLifeDays: ps.shelfLifeDays,
         weatherTags: ps.weatherTags,
       },
     });
 
-    const sales: { tenantId: string; productId: string; storeId: string; date: Date; quantity: number; revenue: number; margin: number }[] = [];
-    const stockLevels: { tenantId: string; productId: string; storeId: string; quantity: number; reorderPoint: number }[] = [];
+    // Nearest-batch expiry date derived from the product's DLC position.
+    const expiryDate = new Date(now.getTime() + ps.nearestExpiryDays * 86_400_000);
+
+    const sales: { tenantId: string; productId: string; storeId: string; date: Date; quantity: number; revenue: number; margin: number; returnedQty: number; returnedRevenue: number }[] = [];
+    const stockLevels: { tenantId: string; productId: string; storeId: string; quantity: number; reorderPoint: number; expiryDate: Date }[] = [];
     stores.forEach((store, si) => {
       const history = buildHistory(ps, days, storeFactors[si] ?? 0.5);
       history.forEach((qty, i) => {
         const date = new Date(now.getTime() - (days - 1 - i) * 86_400_000);
+        const returnedQty = Math.round(qty * ps.returnRate);
         sales.push({
           tenantId: tenant.id,
           productId: product.id,
@@ -98,15 +113,18 @@ async function main() {
           quantity: qty,
           revenue: Number((qty * ps.unitPrice).toFixed(2)),
           margin: Number((qty * (ps.unitPrice - ps.costPrice)).toFixed(2)),
+          returnedQty,
+          returnedRevenue: Number((returnedQty * ps.unitPrice).toFixed(2)),
         });
       });
-      // Current stock split across stores.
+      // Current stock split across clients.
       stockLevels.push({
         tenantId: tenant.id,
         productId: product.id,
         storeId: store.id,
         quantity: Math.round((ps.stock / stores.length) * (storeFactors[si] ?? 0.5)),
         reorderPoint: Math.round(ps.reorderPoint / stores.length),
+        expiryDate,
       });
     });
     await prisma.sale.createMany({ data: sales });

@@ -54,17 +54,20 @@ model User {
 // ─── Commercial domain ──────────────────────────────────────────────────────
 
 model Store {
-  id        String   @id @default(cuid())
-  tenantId  String
-  code      String
-  name      String
-  banner    String?  // Enseigne (Marjane, Carrefour, ...)
-  city      String?
-  region    String?
-  latitude  Float?
-  longitude Float?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  tenantId     String
+  code         String
+  name         String
+  banner       String?  // Type de point de vente (Supérette, Épicerie, Café-Laiterie, Grande surface...)
+  city         String?
+  region       String?
+  latitude     Float?
+  longitude    Float?
+  salesRep     String?  // Commercial / livreur en charge du client
+  route        String?  // Tournée de livraison
+  deliveryDays String[] @default([]) // Jours de livraison (Lun, Mar, ...)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
 
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   sales       Sale[]
@@ -96,6 +99,7 @@ model Product {
   unitPrice   Float    @default(0)
   costPrice   Float    @default(0)
   seasonal    Boolean  @default(false)
+  shelfLifeDays Int?   // Durée de conservation (DLC) d'un lot frais, en jours
   weatherTags String[] @default([]) // ["HEAT", "RAIN", "RAMADAN", ...]
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -115,11 +119,13 @@ model Sale {
   tenantId   String
   productId  String
   storeId    String
-  date       DateTime
-  quantity   Float
-  revenue    Float
-  margin     Float    @default(0)
-  promoFlag  Boolean  @default(false)
+  date            DateTime
+  quantity        Float
+  revenue         Float
+  margin          Float    @default(0)
+  returnedQty     Float    @default(0) // Unités retournées (invendus / casse / DLC)
+  returnedRevenue Float    @default(0) // Valeur créditée au client (MAD)
+  promoFlag       Boolean  @default(false)
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -137,6 +143,7 @@ model StockLevel {
   storeId      String
   quantity     Float
   reorderPoint Float    @default(0)
+  expiryDate   DateTime? // DLC du lot le plus proche en stock
   updatedAt    DateTime @updatedAt
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)

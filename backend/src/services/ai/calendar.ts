@@ -64,7 +64,7 @@ function seasonalEvents(today: Date): CalendarEvent[] {
   }
   // Summer
   if (month >= 6 && month <= 8) {
-    events.push({ tag: "SUMMER", name: "Été", startsInDays: 0, productKinds: ["BEVERAGE", "FROZEN", "FRESH"], weight: 0.7 });
+    events.push({ tag: "SUMMER", name: "Été", startsInDays: 0, productKinds: ["BEVERAGE", "FROZEN", "FRESH", "DAIRY"], weight: 0.7 });
   }
   // Winter
   if (month === 12 || month <= 2) {
