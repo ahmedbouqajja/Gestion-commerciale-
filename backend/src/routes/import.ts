@@ -1,5 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
+import ExcelJS from "exceljs";
 import { authenticate, authorize } from "../middleware/auth.js";
 import { importSpreadsheet } from "../services/import/importService.js";
 import { ENTITY_DEFS, type ImportEntity } from "../services/import/schemas.js";
@@ -7,7 +8,7 @@ import { invalidateTenant } from "../services/intelligence.js";
 
 /**
  * Data import endpoints (Excel / CSV) with automatic validation.
- *   GET  /api/import/:entity/template   → CSV template
+ *   GET  /api/import/:entity/template   → Excel (.xlsx) template
  *   POST /api/import/:entity            → validate (+ persist unless ?dryRun=1)
  */
 const router = Router();
@@ -24,14 +25,31 @@ function isEntity(v: string): v is ImportEntity {
   return (ENTITIES as string[]).includes(v);
 }
 
-router.get("/:entity/template", (req, res) => {
-  const entity = req.params.entity;
-  if (!isEntity(entity)) return res.status(404).json({ error: "Entité inconnue." });
-  const def = ENTITY_DEFS[entity];
-  const lines = [def.templateHeaders.join(","), ...def.templateRows.map((r) => r.join(","))];
-  res.setHeader("Content-Type", "text/csv; charset=utf-8");
-  res.setHeader("Content-Disposition", `attachment; filename="modele_${entity}.csv"`);
-  res.send(lines.join("\n"));
+router.get("/:entity/template", async (req, res, next) => {
+  try {
+    const entity = req.params.entity;
+    if (!isEntity(entity)) return res.status(404).json({ error: "Entité inconnue." });
+    const def = ENTITY_DEFS[entity];
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet(def.label);
+
+    // Header row (bold) + an example row so the expected format is obvious.
+    sheet.addRow(def.templateHeaders);
+    sheet.getRow(1).font = { bold: true };
+    sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEFF1F5" } };
+    for (const r of def.templateRows) sheet.addRow(r);
+
+    // Reasonable column widths based on header length.
+    sheet.columns = def.templateHeaders.map((h) => ({ width: Math.max(14, h.length + 4) }));
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="modele_${entity}.xlsx"`);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (e) {
+    next(e);
+  }
 });
 
 router.post(

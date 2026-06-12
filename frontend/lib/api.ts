@@ -76,7 +76,7 @@ export const api = {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
     if (!res.ok) throw new Error("Téléchargement du modèle impossible.");
-    await triggerDownload(await res.blob(), `modele_${entity}.csv`);
+    await triggerDownload(await res.blob(), `modele_${entity}.xlsx`);
   },
 
   reportPreview: (period: ReportPeriod) => request<ReportPreview>(`/reports/preview?period=${period}`),

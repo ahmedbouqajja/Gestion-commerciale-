@@ -63,7 +63,7 @@ export default function ImportPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-semibold">Fichier à importer — {ENTITIES.find((e) => e.key === entity)?.label}</h2>
           <button onClick={() => api.downloadTemplate(entity)} className="btn-ghost text-sm">
-            <Download className="h-4 w-4" /> Télécharger le modèle CSV
+            <Download className="h-4 w-4" /> Télécharger le modèle Excel
           </button>
         </div>
 
