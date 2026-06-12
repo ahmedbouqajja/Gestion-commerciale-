@@ -3,6 +3,7 @@ import multer from "multer";
 import { authenticate, authorize } from "../middleware/auth.js";
 import { importSpreadsheet } from "../services/import/importService.js";
 import { ENTITY_DEFS, type ImportEntity } from "../services/import/schemas.js";
+import { invalidateTenant } from "../services/intelligence.js";
 
 /**
  * Data import endpoints (Excel / CSV) with automatic validation.
@@ -51,6 +52,8 @@ router.post(
         tenantId: req.auth?.tenantId,
         persist: !dryRun,
       });
+      // Imported data changes the analytics → drop cached aggregates.
+      if (report.mode === "PERSISTED") invalidateTenant(req.auth?.tenantId);
       res.json(report);
     } catch (e) {
       next(e);

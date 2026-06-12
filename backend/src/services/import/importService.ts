@@ -93,15 +93,32 @@ async function persist(entity: ImportEntity, rows: Record<string, unknown>[], te
   }
 }
 
+/** Infer the engine category kind from a free-text category name (FR/EN). */
+function inferKind(name: string): string {
+  const s = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  if (/(laitier|laine|dairy|lait|yaourt|fromage)/.test(s)) return "DAIRY";
+  if (/(boisson|beverage|jus|eau|soda|the|cafe)/.test(s)) return "BEVERAGE";
+  if (/(surgel|frozen|glace)/.test(s)) return "FROZEN";
+  if (/(viande|meat|boucherie)/.test(s)) return "MEAT";
+  if (/(poisson|fish|maree)/.test(s)) return "FISH";
+  if (/(frais|fresh|fruit|legume)/.test(s)) return "FRESH";
+  return "GROCERY";
+}
+
 async function persistProducts(rows: Record<string, unknown>[], tenantId: string): Promise<number> {
   let n = 0;
   for (const r of rows) {
     let categoryId: string | undefined;
     if (r.category) {
+      const name = String(r.category);
+      const kind = inferKind(name);
       const cat = await prisma.category.upsert({
-        where: { tenantId_name: { tenantId, name: String(r.category) } },
-        update: {},
-        create: { tenantId, name: String(r.category) },
+        where: { tenantId_name: { tenantId, name } },
+        update: { kind },
+        create: { tenantId, name, kind },
       });
       categoryId = cat.id;
     }

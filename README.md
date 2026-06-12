@@ -18,6 +18,7 @@ Le cœur intelligent du produit est **fonctionnel et testé**, exposé via une A
 | --- | --- |
 | 🧠 **Moteur de recommandation d'offres** | Fusionne 5 signaux — tendance des ventes, météo, calendrier marketing, saisonnalité, risque de rupture — pour produire des recommandations classées (promotion, tête de gondole, dégustation, réassort) avec **impact estimé**, **CA menacé** et **score de confiance**. |
 | 📥 **Importation Excel / CSV** | Import des ventes, produits, magasins et stocks avec **validation automatique** (en-têtes FR/EN tolérants, contrôle ligne par ligne, modèles téléchargeables, aperçu). Persistance multi-tenant via Prisma. |
+| 🔗 **Pipeline branché sur les données** | Dès qu'un tenant a des données (import/seed), le tableau de bord, les recommandations, les prévisions et les listes lisent **PostgreSQL** (par société) ; sinon repli automatique sur le jeu de démo. Catégorie déduite du libellé à l'import pour activer l'intelligence météo/calendrier. |
 | 📊 **Tableau de bord IA** | CA jour / 7 j / 30 j, évolution vs N-1, produits en croissance/baisse, magasins performants/en difficulté, **alertes automatiques**. |
 | 🌤️ **Analyse météo** | Connecteur OpenWeatherMap (avec simulation déterministe sans clé) → tags commerciaux (canicule, pluie, froid). |
 | 📅 **Calendrier marketing** | Détection automatique Ramadan, Aïd Al Fitr, Aïd Al Adha, rentrée, été, hiver, fêtes — avec affinités produits. |
@@ -29,8 +30,7 @@ Le cœur intelligent du produit est **fonctionnel et testé**, exposé via une A
 
 ### 🗺️ Feuille de route (pages présentes en placeholder / à étoffer)
 Connecteurs ERP (Sage / Odoo / SAP), génération de rapports PDF/Excel/PPTX, facturation,
-gestion fine des utilisateurs, classement des enseignes, files d'attente BullMQ/Redis,
-branchement du tableau de bord sur les données importées (DB) au lieu du jeu de démo.
+gestion fine des utilisateurs, classement des enseignes, files d'attente BullMQ/Redis.
 
 ---
 
