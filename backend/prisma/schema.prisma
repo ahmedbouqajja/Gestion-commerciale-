@@ -1,0 +1,71 @@
+// Schéma Prisma - Assistant Prof Maroc AI (MVP)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  FREE
+  PRO
+}
+
+enum DocType {
+  JDADA
+  CONTROLE
+  EXAMEN
+  EXERCICES
+  DEVOIR
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String
+  name      String
+  school    String?
+  subject   String?
+  level     String?
+  plan      Plan       @default(FREE)
+  language  String     @default("fr")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  documents Document[]
+  usages    Usage[]
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      DocType
+  title     String
+  subject   String?
+  level     String?
+  language  String   @default("fr")
+  // Contenu pédagogique généré, au format Markdown.
+  content   String
+  // Paramètres de génération (matière, niveau, leçon, difficulté...) au format JSON.
+  meta      Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, type])
+  @@index([userId, createdAt])
+}
+
+// Suivi de consommation mensuelle pour les quotas du pack gratuit.
+model Usage {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Format "YYYY-MM"
+  month  String
+  count  Int    @default(0)
+
+  @@unique([userId, month])
+}

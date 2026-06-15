@@ -11,6 +11,13 @@ venv/
 dist/
 build/
 *.spec
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.log
+.env.local
+
 # OS
 .DS_Store
 Thumbs.db
