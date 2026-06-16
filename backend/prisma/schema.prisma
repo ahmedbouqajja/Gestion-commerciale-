@@ -1,0 +1,242 @@
+// Smart Promo AI — Prisma schema
+// Multi-tenant (single database, shared schema, isolation by tenantId on every row).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // SQLite : base locale dans un seul fichier (aucun serveur requis).
+  // DATABASE_URL = "file:./dev.db" (dev) ou un chemin absolu en app de bureau.
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Tenancy & Auth ─────────────────────────────────────────────────────────
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      String   @default("STARTER") // STARTER | PRO | ENTERPRISE
+  country   String   @default("MA")
+  currency  String   @default("MAD")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users           User[]
+  stores          Store[]
+  categories      Category[]
+  products        Product[]
+  sales           Sale[]
+  purchases       Purchase[]
+  stockLevels     StockLevel[]
+  promotions      Promotion[]
+  recommendations Recommendation[]
+  reports         Report[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String
+  email        String   @unique // globally unique: one account = one email = one tenant
+  passwordHash String
+  fullName     String
+  role         String   @default("VIEWER") // SUPER_ADMIN | TENANT_ADMIN | COMMERCIAL_DIRECTOR | ZONE_MANAGER | STORE_MANAGER | ANALYST | VIEWER
+  active       Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// ─── Commercial domain ──────────────────────────────────────────────────────
+
+model Store {
+  id           String   @id @default(cuid())
+  tenantId     String
+  code         String
+  name         String
+  banner       String?  // Type de point de vente (Supérette, Épicerie, Café-Laiterie, Grande surface...)
+  city         String?
+  region       String?
+  latitude     Float?
+  longitude    Float?
+  salesRep     String?  // Commercial / livreur en charge du client
+  route        String?  // Tournée de livraison
+  deliveryDays String   @default("[]") // JSON array of strings — SQLite n'a pas de type liste
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sales       Sale[]
+  stockLevels StockLevel[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+}
+
+model Category {
+  id       String  @id @default(cuid())
+  tenantId String
+  name     String  // Produits frais, Laitiers, Boissons, Surgelés, Viandes, Poissons...
+  kind     String? // FRESH, DAIRY, BEVERAGE, FROZEN, MEAT, FISH, GROCERY...
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  tenantId    String
+  sku         String
+  name        String
+  categoryId  String?
+  unitPrice   Float    @default(0)
+  costPrice   Float    @default(0)
+  seasonal    Boolean  @default(false)
+  shelfLifeDays Int?   // Durée de conservation (DLC) d'un lot frais, en jours
+  // Stock dépôt : niveau de départ saisi une fois, puis ajusté automatiquement
+  // par les achats (entrées) et les ventes (sorties).
+  initialStock  Float    @default(0)
+  inventoryDate DateTime? // Date de l'inventaire initial (point de départ du calcul)
+  weatherTags String   @default("[]") // JSON array: ["HEAT", "RAIN", "RAMADAN", ...]
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category        Category?        @relation(fields: [categoryId], references: [id])
+  sales           Sale[]
+  purchases       Purchase[]
+  stockLevels     StockLevel[]
+  recommendations Recommendation[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId, categoryId])
+}
+
+model Sale {
+  id         String   @id @default(cuid())
+  tenantId   String
+  productId  String
+  storeId    String
+  date            DateTime
+  quantity        Float
+  revenue         Float
+  margin          Float    @default(0)
+  returnedQty     Float    @default(0) // Unités retournées (invendus / casse / DLC)
+  returnedRevenue Float    @default(0) // Valeur créditée au client (MAD)
+  promoFlag       Boolean  @default(false)
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  store   Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, date])
+  @@index([tenantId, productId, date])
+  @@index([tenantId, storeId, date])
+}
+
+// Achats / réceptions au dépôt (entrées de stock).
+model Purchase {
+  id        String   @id @default(cuid())
+  tenantId  String
+  productId String
+  date      DateTime
+  quantity  Float
+  unitCost  Float    @default(0)
+  createdAt DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, date])
+  @@index([tenantId, productId, date])
+}
+
+// Legacy — stock par point de vente. Conservé pour compatibilité ; le calcul du
+// stock se fait désormais au niveau dépôt (initialStock + achats − ventes).
+model StockLevel {
+  id           String   @id @default(cuid())
+  tenantId     String
+  productId    String
+  storeId      String
+  quantity     Float
+  reorderPoint Float    @default(0)
+  expiryDate   DateTime? // DLC du lot le plus proche en stock
+  updatedAt    DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  store   Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, productId, storeId])
+  @@index([tenantId])
+}
+
+// ─── AI outputs ─────────────────────────────────────────────────────────────
+
+model Promotion {
+  id          String          @id @default(cuid())
+  tenantId    String
+  name        String
+  productSku  String?
+  type        String          // DISCOUNT, ENDCAP, TASTING, BUNDLE, STOCK_UP...
+  discountPct Float?
+  startDate   DateTime?
+  endDate     DateTime?
+  status      String          @default("SUGGESTED") // SUGGESTED | PLANNED | ACTIVE | DONE | REJECTED
+  source      String          @default("AI") // AI | MANUAL
+  createdAt   DateTime        @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model Recommendation {
+  id              String   @id @default(cuid())
+  tenantId        String
+  productId       String?
+  title           String
+  rationale       String   // Pourquoi (analyse)
+  actions         String   @default("[]") // JSON array d'actions recommandées
+  estimatedUplift Float    @default(0) // % d'impact estimé
+  confidence      Float    @default(0) // 0..1
+  drivers         String   @default("[]") // JSON array: WEATHER, CALENDAR, SEASON, STOCKOUT, TREND
+  validUntil      DateTime?
+  createdAt       DateTime @default(now())
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([tenantId])
+}
+
+model Report {
+  id        String   @id @default(cuid())
+  tenantId  String
+  title     String
+  period    String   // WEEKLY, MONTHLY, QUARTERLY
+  format    String   // PDF, XLSX, PPTX
+  summary   String?
+  payload   String?  // JSON
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// ─── Note SQLite ──────────────────────────────────────────────────────────────
+// SQLite (Prisma) ne supporte ni les enums ni les listes scalaires. Les anciens
+// enums (Plan, Role, PromotionStatus) sont stockés en String ; les anciennes
+// listes (deliveryDays, weatherTags, drivers, actions) sont stockées en JSON
+// String (encodage/décodage côté code via src/utils/jsonList.ts).

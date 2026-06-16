@@ -1,16 +1,44 @@
-# Python
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Builds
+dist/
+build/
+.next/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database
+*.sqlite3
+*.db
+
+# Prisma
+backend/prisma/migrations/dev.db*
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Coverage
+coverage/
+
+# Python (legacy)
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-.env
-.venv/
-venv/
-*.sqlite3
-*.db
-dist/
-build/
 *.spec
-# OS
-.DS_Store
-Thumbs.db
