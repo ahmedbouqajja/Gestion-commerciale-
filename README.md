@@ -23,14 +23,14 @@ Le cœur intelligent du produit est **fonctionnel et testé**, exposé via une A
 | 📥 **Importation Excel / CSV** | Import des ventes, achats, produits et clients avec **validation automatique** (en-têtes FR/EN tolérants, contrôle ligne par ligne, modèles téléchargeables, aperçu). Persistance multi-tenant via Prisma. |
 | 📦 **Stock dépôt automatique** | Le stock se calcule seul : **inventaire initial + achats (entrées) − ventes (sorties)**. Seuil de réapprovisionnement déduit du rythme de vente. |
 | 🔗 **Pipeline branché sur les données** | Dès qu'un tenant a des données (import/seed), le tableau de bord, les recommandations, les prévisions et les listes lisent **PostgreSQL** (par société) ; sinon repli automatique sur le jeu de démo. Catégorie déduite du libellé à l'import pour activer l'intelligence météo/calendrier. |
-| 📄 **Génération de rapports** | Rapports **PDF** (pdfkit) et **Excel** (exceljs) hebdo / mensuel / trimestriel, style corporate, avec **commentaires exécutifs auto-générés** (ancrés sur les données, enrichis par OpenAI si configuré) et aperçu dans l'app. |
+| 📄 **Génération de rapports** | Rapports **PDF** (pdfkit) et **Excel** (exceljs) hebdo / mensuel / trimestriel, style corporate, avec **commentaires exécutifs auto-générés** (ancrés sur les données, enrichis par Claude si configuré) et aperçu dans l'app. |
 | 📊 **Tableau de bord IA** | CA jour / 7 j / 30 j, évolution vs N-1, **taux de retour**, produits en croissance/baisse, clients performants/en difficulté, **alertes automatiques**. |
 | 🚚 **Clients & tournées** | Points de vente livrés rattachés à un **commercial**, une **tournée** et des **jours de livraison** ; analyse de performance par client. |
 | 🌤️ **Analyse météo** | Connecteur OpenWeatherMap (avec simulation déterministe sans clé) → tags commerciaux (canicule, pluie, froid). |
 | 📅 **Calendrier marketing** | Détection automatique Ramadan, Aïd Al Fitr, Aïd Al Adha, rentrée, été, hiver, fêtes — avec affinités produits. |
 | 📦 **Détection des ruptures** | Couverture de stock estimée + suggestions (commande fournisseur, transfert depuis un client excédentaire). |
 | 📈 **Prévisions de ventes** | Tendance linéaire + saisonnalité hebdomadaire, horizons 7 / 30 / 90 / 365 jours. |
-| 💬 **Assistant conversationnel** | Réponses **ancrées sur les données calculées** (pas d'hallucination) ; reformulation OpenAI optionnelle. |
+| 💬 **Assistant conversationnel** | Réponses **ancrées sur les données calculées** (pas d'hallucination) ; reformulation **Claude (Anthropic)** optionnelle. |
 | 🔐 **Multi-tenant & rôles** | Schéma Prisma multi-société (isolation par `tenantId`), JWT, 7 rôles, RBAC. |
 | 🖥️ **Frontend premium** | Next.js + Tailwind : landing, connexion, dashboard, promotions IA, prévisions, produits, magasins, assistant. |
 
@@ -58,7 +58,7 @@ smart-promo-ai/
 ```
 
 **Stack :** Node.js, Express, TypeScript, Prisma, PostgreSQL, Redis (roadmap), JWT, Bcrypt ·
-Next.js, React, Tailwind, Recharts, Lucide · OpenAI (optionnel) · Docker.
+Next.js, React, Tailwind, Recharts, Lucide · Claude / Anthropic (optionnel) · Docker.
 
 ---
 
@@ -87,7 +87,7 @@ cd frontend && npm install && npm run dev   # http://localhost:3000
 ### Option B — Avec PostgreSQL (mode complet multi-tenant)
 
 ```bash
-cp .env.example .env                # renseigner DATABASE_URL, JWT_SECRET, (OPENAI_API_KEY…)
+cp .env.example .env                # renseigner DATABASE_URL, JWT_SECRET, (ANTHROPIC_API_KEY…)
 docker compose up -d                # PostgreSQL + Redis
 
 cd backend

@@ -1,13 +1,13 @@
 import type { DashboardSummary } from "../analytics/dashboard.js";
 import type { Recommendation } from "../../types/domain.js";
-import { env } from "../../config/env.js";
+import { generateText } from "../../lib/anthropic.js";
 
 /**
  * Conversational commercial assistant.
  *
  * Resolves the user's question to an intent and answers from the already-
  * computed analytics + recommendations (so answers are grounded, not
- * hallucinated). When an OpenAI key is present, the grounded facts are passed
+ * hallucinated). When a Claude (Anthropic) key is present, the grounded facts are passed
  * as context to phrase a richer natural-language reply.
  */
 
@@ -103,34 +103,12 @@ export async function ask(question: string, ctx: AssistantContext): Promise<Assi
   const intent = classify(question);
   const grounded = answerFor(intent, ctx, question);
 
-  // Optional: let OpenAI rephrase using ONLY the grounded facts as context.
-  if (env.openaiApiKey) {
-    try {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.openaiApiKey}` },
-        body: JSON.stringify({
-          model: env.openaiModel,
-          temperature: 0.3,
-          messages: [
-            {
-              role: "system",
-              content:
-                "Tu es un conseiller commercial pour le retail. Réponds en français, de façon concise et actionnable, en t'appuyant STRICTEMENT sur les faits fournis. N'invente aucun chiffre.",
-            },
-            { role: "user", content: `Question: ${question}\n\nFaits analysés:\n${grounded.answer}` },
-          ],
-        }),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-        const content = data.choices?.[0]?.message?.content;
-        if (content) return { ...grounded, answer: content };
-      }
-    } catch {
-      // fall back to grounded answer
-    }
-  }
+  // Optionnel : Claude reformule en s'appuyant UNIQUEMENT sur les faits calculés.
+  const rephrased = await generateText(
+    "Tu es un conseiller commercial pour le retail. Réponds en français, de façon concise et actionnable, en t'appuyant STRICTEMENT sur les faits fournis. N'invente aucun chiffre.",
+    `Question: ${question}\n\nFaits analysés:\n${grounded.answer}`,
+  );
+  if (rephrased) return { ...grounded, answer: rephrased };
 
   return grounded;
 }

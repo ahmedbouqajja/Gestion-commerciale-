@@ -76,6 +76,10 @@ run("npm prune --omit=dev --no-workspaces", stagedBackend);
 step("Copie du frontend exporté");
 fs.cpSync(path.join(frontendDir, "out"), stagedFrontend, { recursive: true });
 
+// Note : aucune clé Claude n'est embarquée dans l'installateur (choix de
+// sécurité). L'utilisateur saisit sa clé une fois dans Paramètres → elle est
+// stockée localement dans %APPDATA%\smart-promo-desktop\config.json.
+
 // 8. Récapitulatif
 step("Staging terminé");
 const sizeMB = (dir) => {

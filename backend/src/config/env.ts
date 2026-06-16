@@ -13,8 +13,9 @@ export const env = {
   databaseUrl: process.env.DATABASE_URL ?? "",
   jwtSecret: process.env.JWT_SECRET ?? INSECURE_JWT_FALLBACK,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
-  openaiApiKey: process.env.OPENAI_API_KEY ?? "",
-  openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+  // Claude (Anthropic) — optionnel. Sans clé, le moteur fonctionne en mode règles.
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
+  anthropicModel: process.env.ANTHROPIC_MODEL ?? "claude-opus-4-8",
   openWeatherApiKey: process.env.OPENWEATHER_API_KEY ?? "",
   // Dossier du frontend exporté (Next.js `out/`). Renseigné en app de bureau
   // (Electron) pour que l'API serve aussi l'interface, sur le même port.

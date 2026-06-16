@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, type BillingInfo } from "@/lib/api";
-import { AlertTriangle, Building2, CheckCircle2, CloudSun, Globe, KeyRound, Loader2, Plug, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { AlertTriangle, Building2, CheckCircle2, CloudSun, Globe, KeyRound, Loader2, Plug, Sparkles, SlidersHorizontal, Trash2, X } from "lucide-react";
 
 const COUNTRY_LABELS: Record<string, string> = {
   MA: "Maroc",
@@ -68,6 +68,9 @@ export default function SettingsPage() {
               Ajoutez une clé <code>OPENWEATHER_API_KEY</code> côté serveur pour des prévisions réelles.
             </p>
           </Section>
+
+          {/* Intelligence Claude */}
+          <ClaudeSection />
 
           {/* Intégrations */}
           <Section icon={Plug} title="Intégrations ERP">
@@ -278,6 +281,127 @@ function PwInput({ label, value, onChange, hint }: { label: string; value: strin
       />
       {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
     </div>
+  );
+}
+
+const CLAUDE_MODELS = [
+  { id: "claude-haiku-4-5", label: "Claude Haiku 4.5 — rapide & économique" },
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6 — équilibré" },
+  { id: "claude-opus-4-8", label: "Claude Opus 4.8 — le plus intelligent" },
+];
+
+function ClaudeSection() {
+  const [ai, setAi] = useState<{ configured: boolean; model: string; editable: boolean } | null>(null);
+  const [apiKey, setApiKey] = useState("");
+  const [model, setModel] = useState("claude-haiku-4-5");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .aiSettings()
+      .then((s) => {
+        setAi(s);
+        if (s.model) setModel(s.model);
+      })
+      .catch(() => setAi({ configured: false, model: "claude-haiku-4-5", editable: false }));
+  }, []);
+
+  async function save(body: { apiKey?: string; model?: string }) {
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+    try {
+      const r = await api.setAiSettings(body);
+      setAi((prev) => ({ configured: r.configured, model: r.model, editable: prev?.editable ?? true }));
+      setApiKey("");
+      setSaved(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Échec de l'enregistrement.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Section icon={Sparkles} title="Intelligence (Claude)">
+      {!ai ? (
+        <p className="text-sm text-slate-400">Chargement…</p>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-4 text-sm">
+            <span className="text-slate-500">État</span>
+            {ai.configured ? (
+              <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                Activée · {ai.model}
+              </span>
+            ) : (
+              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
+                Non configurée
+              </span>
+            )}
+          </div>
+
+          {ai.editable ? (
+            <div className="mt-3 space-y-3">
+              <p className="text-xs text-slate-500">
+                Collez votre clé API Claude (Anthropic). Elle reste <strong>sur ce PC</strong> et n'est jamais
+                partagée. Sans clé, l'app fonctionne en mode règles (réponses calculées, sans reformulation).
+              </p>
+              <div>
+                <label className="text-sm font-medium text-slate-700">Clé API Claude</label>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder={ai.configured ? "•••••••• (laisser vide pour conserver)" : "sk-ant-..."}
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700">Modèle</label>
+                <select
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                >
+                  {CLAUDE_MODELS.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+              {saved && (
+                <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                  Enregistré — la reformulation par Claude est active immédiatement.
+                </p>
+              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => save({ apiKey: apiKey.trim() || undefined, model })}
+                  disabled={saving || (!apiKey.trim() && !ai.configured)}
+                  className="btn-primary"
+                >
+                  {saving && <Loader2 className="h-4 w-4 animate-spin" />} Enregistrer
+                </button>
+                {ai.configured && (
+                  <button onClick={() => save({ apiKey: "" })} disabled={saving} className="btn-ghost">
+                    Désactiver
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-slate-400">
+              Définissez <code>ANTHROPIC_API_KEY</code> côté serveur pour activer la reformulation par Claude.
+            </p>
+          )}
+        </>
+      )}
+    </Section>
   );
 }
 

@@ -16,7 +16,7 @@ import { WEATHER_AFFINITY } from "./weather.js";
  * drivers — sales trend, weather, marketing calendar, seasonality and
  * stock-out risk — into ranked, actionable offer recommendations with an
  * estimated uplift and a confidence score. It runs with zero external
- * dependencies; OpenAI can optionally rewrite the rationale (see assistant).
+ * dependencies; Claude can optionally rewrite the rationale (see assistant).
  */
 
 export interface EngineContext {

@@ -63,6 +63,18 @@ L'application est livrée avec une base pré-remplie :
 Importez ensuite vos propres données (ventes, produits, magasins…) depuis la page
 **Import**. Tout est sauvegardé localement dans SQLite.
 
+## Intelligence (Claude)
+
+L'assistant et les commentaires de rapports peuvent être reformulés par **Claude
+(Anthropic)**. C'est **optionnel** : sans clé, l'app fonctionne en mode règles
+(réponses calculées, ancrées sur les données, sans reformulation).
+
+Pour l'activer : **Paramètres → Intelligence (Claude)** → collez votre clé API
+(`sk-ant-…`) et choisissez le modèle (Haiku = rapide/économique, Opus = le plus
+intelligent). La clé est stockée **localement** dans
+`%APPDATA%\smart-promo-desktop\config.json` — elle n'est **jamais** incluse dans
+l'installateur ni partagée. Prise en compte immédiate (sans redémarrage).
+
 ## Notes
 
 - L'installateur n'est pas signé numériquement : Windows SmartScreen peut afficher

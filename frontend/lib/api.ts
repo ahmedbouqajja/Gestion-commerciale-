@@ -64,6 +64,12 @@ export const api = {
     request<{ ok: true }>("/auth/change-password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) }),
   resetDatabase: () =>
     request<{ ok: true; deleted: Record<string, number> }>("/auth/reset-data", { method: "POST" }),
+  aiSettings: () => request<AiSettingsInfo>("/auth/ai-settings"),
+  setAiSettings: (body: { apiKey?: string; model?: string }) =>
+    request<{ ok: true; configured: boolean; model: string }>("/auth/ai-settings", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   stockReport: () => request<{ rows: StockReportRow[] }>("/stock-report"),
   downloadStockReport: async () => {
     const token = getToken();
@@ -265,6 +271,11 @@ export interface BillingInfo {
   currency: string;
   country: string;
   since: string | null;
+}
+export interface AiSettingsInfo {
+  configured: boolean;
+  model: string;
+  editable: boolean;
 }
 export interface ReorderRow {
   sku: string;

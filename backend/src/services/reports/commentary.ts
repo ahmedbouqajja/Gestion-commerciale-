@@ -1,12 +1,12 @@
 import type { DashboardSummary } from "../analytics/dashboard.js";
 import type { Recommendation } from "../../types/domain.js";
-import { env } from "../../config/env.js";
+import { generateText } from "../../lib/anthropic.js";
 
 /**
  * Auto-generated executive commentary for reports.
  *
  * Builds a grounded French narrative from the computed analytics (no invented
- * figures). When an OpenAI key is set, the facts are passed as context to
+ * figures). When a Claude (Anthropic) key is set, the facts are passed as context to
  * produce a more polished corporate write-up.
  */
 
@@ -91,33 +91,13 @@ export async function buildCommentary(
 ): Promise<string[]> {
   const facts = buildCommentaryFacts(dashboard, recommendations);
 
-  if (env.openaiApiKey) {
-    try {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.openaiApiKey}` },
-        body: JSON.stringify({
-          model: env.openaiModel,
-          temperature: 0.4,
-          messages: [
-            {
-              role: "system",
-              content:
-                "Tu es analyste commercial. Rédige une synthèse exécutive en français (3 à 5 paragraphes), ton corporate, à partir UNIQUEMENT des faits fournis. N'invente aucun chiffre. Réponds en paragraphes séparés par des sauts de ligne.",
-            },
-            { role: "user", content: `Rapport ${PERIOD_LABEL[period]}.\nFaits:\n- ${facts.join("\n- ")}` },
-          ],
-        }),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-        const content = data.choices?.[0]?.message?.content;
-        if (content) return content.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
-      }
-    } catch {
-      // fall back to grounded facts
-    }
-  }
+  // Optionnel : Claude rédige la synthèse à partir UNIQUEMENT des faits calculés.
+  const text = await generateText(
+    "Tu es analyste commercial. Rédige une synthèse exécutive en français (3 à 5 paragraphes), ton corporate, à partir UNIQUEMENT des faits fournis. N'invente aucun chiffre. Réponds en paragraphes séparés par des sauts de ligne.",
+    `Rapport ${PERIOD_LABEL[period]}.\nFaits:\n- ${facts.join("\n- ")}`,
+    2048,
+  );
+  if (text) return text.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
 
   return facts;
 }

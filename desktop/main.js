@@ -69,6 +69,8 @@ function loadConfig(userData) {
     config.port = PREFERRED_PORT;
     changed = true;
   }
+  // La clé Claude (anthropicApiKey) est écrite ici par le backend quand
+  // l'utilisateur la saisit dans Paramètres — pas besoin de l'initialiser.
   if (changed) {
     try {
       fs.mkdirSync(userData, { recursive: true });
@@ -151,7 +153,7 @@ function log(line) {
 
 // ─── Démarrage du backend ────────────────────────────────────────────────────
 
-function startBackend(paths, port, dbPath, jwtSecret) {
+function startBackend(paths, port, dbPath, config) {
   const env = {
     ...process.env,
     ELECTRON_RUN_AS_NODE: "1", // exécute le binaire Electron comme un Node nu
@@ -159,9 +161,12 @@ function startBackend(paths, port, dbPath, jwtSecret) {
     PORT: String(port),
     // Prisma SQLite : chemin absolu, séparateurs `/` (compatibles Windows).
     DATABASE_URL: `file:${dbPath.split(path.sep).join("/")}`,
-    JWT_SECRET: jwtSecret,
+    JWT_SECRET: config.jwtSecret,
     STATIC_DIR: paths.frontendDir,
     CORS_ORIGIN: "*",
+    // Source de vérité des réglages IA : la clé Claude est lue/écrite ici par le
+    // backend (saisie via Paramètres). Elle reste sur le poste de l'utilisateur.
+    APP_CONFIG_PATH: path.join(paths.userData, "config.json"),
   };
 
   log(`Démarrage backend : ${paths.backendEntry} (port ${port})`);
@@ -311,7 +316,7 @@ if (!gotLock) {
         saveConfig(file, config);
       }
 
-      backendProcess = startBackend(paths, port, dbPath, config.jwtSecret);
+      backendProcess = startBackend(paths, port, dbPath, config);
       await waitForHealth(port);
       log("Backend prêt — chargement de l'interface.");
       if (mainWindow) await mainWindow.loadURL(`http://127.0.0.1:${port}/`);

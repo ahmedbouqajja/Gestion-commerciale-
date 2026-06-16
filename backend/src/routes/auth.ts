@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { login, registerTenant, listUsers, getBilling, createUser, changePassword, resetTenantData } from "../services/authService.js";
 import { authenticate, authorize } from "../middleware/auth.js";
+import { getAiSettings, setAiSettings, aiConfigEditable } from "../lib/aiConfig.js";
 
 const router = Router();
 
@@ -85,6 +86,30 @@ router.get("/billing", authenticate, async (req, res, next) => {
   try {
     res.json(await getBilling(req.auth?.tenantId));
   } catch (err) {
+    next(err);
+  }
+});
+
+// Réglages IA (Claude) — la clé n'est jamais renvoyée, seulement son état.
+router.get("/ai-settings", authenticate, authorize("TENANT_ADMIN"), (_req, res) => {
+  const { apiKey, model } = getAiSettings();
+  res.json({ configured: Boolean(apiKey), model, editable: aiConfigEditable });
+});
+
+const aiSettingsSchema = z.object({
+  apiKey: z.string().optional(), // omis = inchangé ; "" = désactiver l'IA
+  model: z.enum(["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"]).optional(),
+});
+
+router.post("/ai-settings", authenticate, authorize("TENANT_ADMIN"), (req, res, next) => {
+  try {
+    setAiSettings(aiSettingsSchema.parse(req.body));
+    const current = getAiSettings();
+    res.json({ ok: true, configured: Boolean(current.apiKey), model: current.model });
+  } catch (err) {
+    if (err instanceof Error && /indisponible/.test(err.message)) {
+      return res.status(400).json({ error: err.message });
+    }
     next(err);
   }
 });
