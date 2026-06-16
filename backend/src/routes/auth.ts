@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { login, registerTenant, listUsers, getBilling, createUser, changePassword } from "../services/authService.js";
+import { login, registerTenant, listUsers, getBilling, createUser, changePassword, resetTenantData } from "../services/authService.js";
 import { authenticate, authorize } from "../middleware/auth.js";
 
 const router = Router();
@@ -85,6 +85,18 @@ router.get("/billing", authenticate, async (req, res, next) => {
   try {
     res.json(await getBilling(req.auth?.tenantId));
   } catch (err) {
+    next(err);
+  }
+});
+
+// Vide les données commerciales de la société (efface le jeu de démo).
+router.post("/reset-data", authenticate, authorize("TENANT_ADMIN"), async (req, res, next) => {
+  try {
+    res.json(await resetTenantData(req.auth?.tenantId));
+  } catch (err) {
+    if (err instanceof Error && /indisponible/.test(err.message)) {
+      return res.status(400).json({ error: err.message });
+    }
     next(err);
   }
 });

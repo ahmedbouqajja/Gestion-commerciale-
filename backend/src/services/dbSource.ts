@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma.js";
 import type { ProductSnapshot, WeatherTag } from "../types/domain.js";
 import type { SaleRecord } from "./analytics/dashboard.js";
+import { decodeList } from "../utils/jsonList.js";
 
 /**
  * Per-tenant data source backed by PostgreSQL (Prisma).
@@ -107,7 +108,7 @@ export async function getDbProductSnapshots(tenantId: string, historyDays = 90, 
       unitPrice: p.unitPrice,
       costPrice: p.costPrice,
       seasonal: p.seasonal,
-      weatherTags: (p.weatherTags as WeatherTag[]) ?? [],
+      weatherTags: decodeList(p.weatherTags) as WeatherTag[],
       salesHistory: history,
       stock,
       // Seuil de réappro auto : ~7 jours de couverture au rythme récent.
@@ -143,7 +144,7 @@ export async function listDbStores(tenantId: string) {
     region: s.region ?? "",
     salesRep: s.salesRep ?? "",
     route: s.route ?? "",
-    deliveryDays: s.deliveryDays ?? [],
+    deliveryDays: decodeList(s.deliveryDays),
   }));
 }
 

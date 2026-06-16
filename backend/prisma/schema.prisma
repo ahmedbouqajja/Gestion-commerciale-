@@ -6,7 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  // SQLite : base locale dans un seul fichier (aucun serveur requis).
+  // DATABASE_URL = "file:./dev.db" (dev) ou un chemin absolu en app de bureau.
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -16,7 +18,7 @@ model Tenant {
   id        String   @id @default(cuid())
   name      String
   slug      String   @unique
-  plan      Plan     @default(STARTER)
+  plan      String   @default("STARTER") // STARTER | PRO | ENTERPRISE
   country   String   @default("MA")
   currency  String   @default("MAD")
   active    Boolean  @default(true)
@@ -41,7 +43,7 @@ model User {
   email        String   @unique // globally unique: one account = one email = one tenant
   passwordHash String
   fullName     String
-  role         Role     @default(VIEWER)
+  role         String   @default("VIEWER") // SUPER_ADMIN | TENANT_ADMIN | COMMERCIAL_DIRECTOR | ZONE_MANAGER | STORE_MANAGER | ANALYST | VIEWER
   active       Boolean  @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime @default(now())
@@ -66,7 +68,7 @@ model Store {
   longitude    Float?
   salesRep     String?  // Commercial / livreur en charge du client
   route        String?  // Tournée de livraison
-  deliveryDays String[] @default([]) // Jours de livraison (Lun, Mar, ...)
+  deliveryDays String   @default("[]") // JSON array of strings — SQLite n'a pas de type liste
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
 
@@ -105,7 +107,7 @@ model Product {
   // par les achats (entrées) et les ventes (sorties).
   initialStock  Float    @default(0)
   inventoryDate DateTime? // Date de l'inventaire initial (point de départ du calcul)
-  weatherTags String[] @default([]) // ["HEAT", "RAIN", "RAMADAN", ...]
+  weatherTags String   @default("[]") // JSON array: ["HEAT", "RAIN", "RAMADAN", ...]
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
@@ -190,7 +192,7 @@ model Promotion {
   discountPct Float?
   startDate   DateTime?
   endDate     DateTime?
-  status      PromotionStatus @default(SUGGESTED)
+  status      String          @default("SUGGESTED") // SUGGESTED | PLANNED | ACTIVE | DONE | REJECTED
   source      String          @default("AI") // AI | MANUAL
   createdAt   DateTime        @default(now())
 
@@ -205,10 +207,10 @@ model Recommendation {
   productId       String?
   title           String
   rationale       String   // Pourquoi (analyse)
-  actions         Json     // Liste d'actions recommandées
+  actions         String   @default("[]") // JSON array d'actions recommandées
   estimatedUplift Float    @default(0) // % d'impact estimé
   confidence      Float    @default(0) // 0..1
-  drivers         String[] @default([]) // WEATHER, CALENDAR, SEASON, STOCKOUT, TREND
+  drivers         String   @default("[]") // JSON array: WEATHER, CALENDAR, SEASON, STOCKOUT, TREND
   validUntil      DateTime?
   createdAt       DateTime @default(now())
 
@@ -225,7 +227,7 @@ model Report {
   period    String   // WEEKLY, MONTHLY, QUARTERLY
   format    String   // PDF, XLSX, PPTX
   summary   String?
-  payload   Json?
+  payload   String?  // JSON
   createdAt DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -233,28 +235,8 @@ model Report {
   @@index([tenantId])
 }
 
-// ─── Enums ──────────────────────────────────────────────────────────────────
-
-enum Plan {
-  STARTER
-  PRO
-  ENTERPRISE
-}
-
-enum Role {
-  SUPER_ADMIN
-  TENANT_ADMIN
-  COMMERCIAL_DIRECTOR
-  ZONE_MANAGER
-  STORE_MANAGER
-  ANALYST
-  VIEWER
-}
-
-enum PromotionStatus {
-  SUGGESTED
-  PLANNED
-  ACTIVE
-  DONE
-  REJECTED
-}
+// ─── Note SQLite ──────────────────────────────────────────────────────────────
+// SQLite (Prisma) ne supporte ni les enums ni les listes scalaires. Les anciens
+// enums (Plan, Role, PromotionStatus) sont stockés en String ; les anciennes
+// listes (deliveryDays, weatherTags, drivers, actions) sont stockées en JSON
+// String (encodage/décodage côté code via src/utils/jsonList.ts).

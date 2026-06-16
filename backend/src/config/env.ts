@@ -16,6 +16,9 @@ export const env = {
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",
   openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
   openWeatherApiKey: process.env.OPENWEATHER_API_KEY ?? "",
+  // Dossier du frontend exporté (Next.js `out/`). Renseigné en app de bureau
+  // (Electron) pour que l'API serve aussi l'interface, sur le même port.
+  staticDir: process.env.STATIC_DIR ?? "",
   // Comma-separated list of allowed origins. "*" (default in dev) allows all.
   corsOrigins: (process.env.CORS_ORIGIN ?? "*")
     .split(",")

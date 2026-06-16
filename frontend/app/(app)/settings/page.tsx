@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, type BillingInfo } from "@/lib/api";
-import { Building2, CheckCircle2, CloudSun, Globe, KeyRound, Loader2, Plug, SlidersHorizontal, X } from "lucide-react";
+import { AlertTriangle, Building2, CheckCircle2, CloudSun, Globe, KeyRound, Loader2, Plug, SlidersHorizontal, Trash2, X } from "lucide-react";
 
 const COUNTRY_LABELS: Record<string, string> = {
   MA: "Maroc",
@@ -22,6 +22,7 @@ export default function SettingsPage() {
   const [billing, setBilling] = useState<BillingInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showPw, setShowPw] = useState(false);
+  const [showReset, setShowReset] = useState(false);
 
   useEffect(() => {
     api.billing().then(setBilling).catch((e) => setError(e.message));
@@ -94,10 +95,29 @@ export default function SettingsPage() {
               Vos données sont isolées par société (multi-tenant). Elles ne sont jamais partagées entre clients.
             </p>
           </Section>
+
+          {/* Zone sensible */}
+          <div className="card border border-red-200 lg:col-span-2">
+            <h2 className="mb-2 flex items-center gap-2 font-semibold text-red-700">
+              <AlertTriangle className="h-5 w-5" /> Zone sensible
+            </h2>
+            <p className="text-sm text-slate-600">
+              Vider les <strong>données de démonstration</strong> (ventes, achats, produits, magasins…) pour
+              repartir d'une base vierge avant d'importer vos vraies données. Votre compte et votre société
+              sont conservés. <strong>Cette action est irréversible.</strong>
+            </p>
+            <button
+              onClick={() => setShowReset(true)}
+              className="mt-3 inline-flex w-fit items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 font-medium text-white transition hover:bg-red-700"
+            >
+              <Trash2 className="h-4 w-4" /> Vider la base (repartir à zéro)
+            </button>
+          </div>
         </div>
       )}
 
       {showPw && <ChangePasswordModal onClose={() => setShowPw(false)} />}
+      {showReset && <ResetDataModal onClose={() => setShowReset(false)} />}
     </div>
   );
 }
@@ -157,6 +177,88 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
               </button>
             </div>
           </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ResetDataModal({ onClose }: { onClose: () => void }) {
+  const [confirmText, setConfirmText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<Record<string, number> | null>(null);
+
+  async function doReset() {
+    setError(null);
+    setLoading(true);
+    try {
+      const r = await api.resetDatabase();
+      setResult(r.deleted);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Réinitialisation impossible.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-red-700">
+            <AlertTriangle className="h-5 w-5" /> Vider la base
+          </h2>
+          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {result ? (
+          <div className="mt-6 flex flex-col items-center gap-3 py-4 text-center">
+            <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+            <p className="font-medium">Base réinitialisée.</p>
+            <ul className="text-sm text-slate-500">
+              {Object.entries(result).map(([k, v]) => (
+                <li key={k}>
+                  {v} {k} supprimé(s)
+                </li>
+              ))}
+            </ul>
+            <button onClick={() => (window.location.href = "/dashboard")} className="btn-primary mt-2">
+              Fermer et recharger
+            </button>
+          </div>
+        ) : (
+          <div className="mt-5 space-y-4">
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              Toutes les ventes, achats, produits, magasins et catégories de votre société seront
+              définitivement supprimés. Cette action est irréversible.
+            </p>
+            <div>
+              <label className="text-sm font-medium text-slate-700">
+                Tapez <strong>VIDER</strong> pour confirmer
+              </label>
+              <input
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+              />
+            </div>
+            {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={onClose} className="btn-ghost">
+                Annuler
+              </button>
+              <button
+                onClick={doReset}
+                disabled={loading || confirmText !== "VIDER"}
+                className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />} Vider définitivement
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

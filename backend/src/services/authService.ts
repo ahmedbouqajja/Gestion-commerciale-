@@ -1,7 +1,6 @@
 import { hasDatabase } from "../config/env.js";
 import { prisma } from "../lib/prisma.js";
 import { hashPassword, signToken, verifyPassword } from "../utils/auth.js";
-import type { Role } from "@prisma/client";
 
 /**
  * Authentication service.
@@ -117,7 +116,7 @@ export async function listUsers(tenantId?: string): Promise<UserSummary[]> {
 /** Create a new user inside the caller's tenant. */
 export async function createUser(
   tenantId: string | undefined,
-  input: { fullName: string; email: string; password: string; role: Role },
+  input: { fullName: string; email: string; password: string; role: string },
 ): Promise<UserSummary> {
   if (!hasDatabase || !tenantId || tenantId === DEMO_USER.tenantId) {
     throw new Error("Ajout d'utilisateur indisponible en mode démo (configurez DATABASE_URL).");
@@ -170,6 +169,43 @@ export async function changePassword(userId: string | undefined, currentPassword
     throw new Error("Mot de passe actuel incorrect.");
   }
   await prisma.user.update({ where: { id: userId }, data: { passwordHash: await hashPassword(newPassword) } });
+}
+
+/**
+ * Vide toutes les données commerciales d'une société (ventes, achats, stock,
+ * produits, catégories, magasins + sorties IA) — utile pour effacer le jeu de
+ * démonstration avant d'importer ses vraies données. La société et les
+ * utilisateurs (donc la connexion) sont conservés.
+ */
+export async function resetTenantData(
+  tenantId: string | undefined,
+): Promise<{ ok: true; deleted: Record<string, number> }> {
+  if (!hasDatabase || !tenantId || tenantId === DEMO_USER.tenantId) {
+    throw new Error("Réinitialisation indisponible en mode démo (configurez DATABASE_URL).");
+  }
+  // Ordre : enfants avant parents (les FK produits/magasins sont en cascade,
+  // mais on supprime explicitement pour des compteurs clairs).
+  const sales = await prisma.sale.deleteMany({ where: { tenantId } });
+  const purchases = await prisma.purchase.deleteMany({ where: { tenantId } });
+  const stock = await prisma.stockLevel.deleteMany({ where: { tenantId } });
+  await prisma.recommendation.deleteMany({ where: { tenantId } });
+  await prisma.promotion.deleteMany({ where: { tenantId } });
+  await prisma.report.deleteMany({ where: { tenantId } });
+  const products = await prisma.product.deleteMany({ where: { tenantId } });
+  const categories = await prisma.category.deleteMany({ where: { tenantId } });
+  const stores = await prisma.store.deleteMany({ where: { tenantId } });
+
+  return {
+    ok: true,
+    deleted: {
+      ventes: sales.count,
+      achats: purchases.count,
+      stock: stock.count,
+      produits: products.count,
+      categories: categories.count,
+      magasins: stores.count,
+    },
+  };
 }
 
 function demoResult(): AuthResult {

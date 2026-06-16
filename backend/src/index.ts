@@ -1,3 +1,4 @@
+import path from "node:path";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -12,7 +13,9 @@ import { notFound, errorHandler } from "./middleware/error.js";
 
 const app = express();
 
-app.use(helmet());
+// CSP désactivée : en app de bureau l'interface est servie sur le même origine
+// et Next.js injecte des scripts inline que la CSP par défaut bloquerait.
+app.use(helmet({ contentSecurityPolicy: false }));
 // Restrict origins in production via CORS_ORIGIN; "*" stays open for local dev.
 const allowAllOrigins = env.corsOrigins.includes("*");
 app.use(
@@ -33,13 +36,25 @@ app.use("/api/import", importRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api", intelligenceRoutes);
 
+// ─── Interface (app de bureau) ──────────────────────────────────────────────
+// Quand STATIC_DIR pointe vers le frontend Next.js exporté, l'API sert aussi
+// l'interface sur le même port → un seul serveur, aucun navigateur séparé.
+if (env.staticDir) {
+  const staticDir = env.staticDir;
+  app.use(express.static(staticDir, { extensions: ["html"], index: "index.html" }));
+  // Repli : toute route hors /api et /health renvoie l'application.
+  app.get(/^(?!\/(?:api|health)\b).*/, (_req, res) => {
+    res.sendFile(path.join(staticDir, "index.html"));
+  });
+}
+
 app.use(notFound);
 app.use(errorHandler);
 
 if (env.nodeEnv !== "test") {
   app.listen(env.port, () => {
-    console.log(`\n🚀 Smart Promo AI API → http://localhost:${env.port}`);
-    console.log(`   Base de données : ${hasDatabase ? "PostgreSQL" : "MODE DÉMO (sans DB)"}`);
+    console.log(`\n🚀 Smart Promo AI ${env.staticDir ? "(API + interface)" : "API"} → http://localhost:${env.port}`);
+    console.log(`   Base de données : ${hasDatabase ? "SQLite" : "MODE DÉMO (sans DB)"}`);
     if (!hasDatabase) {
       console.log(`   Connexion démo  : ${DEMO_USER.email} / ${DEMO_USER.password}`);
     }

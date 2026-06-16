@@ -1,0 +1,59 @@
+{
+  "name": "smart-promo-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Smart Promo AI — application de bureau Windows (Electron)",
+  "main": "main.js",
+  "author": "Smart Promo AI",
+  "scripts": {
+    "stage": "node scripts/stage.mjs",
+    "start": "electron .",
+    "dev": "electron .",
+    "dist": "npm run stage && electron-builder --win nsis",
+    "dist:dir": "npm run stage && electron-builder --win --dir"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.smartpromo.desktop",
+    "productName": "Smart Promo AI",
+    "copyright": "Copyright © 2026 Smart Promo AI",
+    "directories": {
+      "output": "dist-installer",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "loading.html",
+      "package.json",
+      "assets/icon.png"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/app",
+        "to": "app"
+      }
+    ],
+    "asar": true,
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Smart Promo AI",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

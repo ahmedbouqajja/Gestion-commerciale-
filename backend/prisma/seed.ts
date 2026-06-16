@@ -4,6 +4,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../src/utils/auth.js";
+import { encodeList } from "../src/utils/jsonList.js";
 import { PRODUCT_SEEDS, STORE_SEEDS, STORE_FACTORS, buildHistory } from "../src/services/sampleData.js";
 
 const prisma = new PrismaClient();
@@ -64,7 +65,7 @@ async function main() {
           region: s.region,
           salesRep: s.salesRep,
           route: s.route,
-          deliveryDays: s.deliveryDays,
+          deliveryDays: encodeList(s.deliveryDays),
         },
       }),
     );
@@ -90,7 +91,7 @@ async function main() {
         costPrice: ps.costPrice,
         seasonal: ps.seasonal,
         shelfLifeDays: ps.shelfLifeDays,
-        weatherTags: ps.weatherTags,
+        weatherTags: encodeList(ps.weatherTags),
         // Depot stock baseline: current sales (in the past) don't decrement it.
         initialStock: ps.stock,
         inventoryDate: now,

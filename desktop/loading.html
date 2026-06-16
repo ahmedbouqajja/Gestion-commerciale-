@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';" />
+    <title>Smart Promo AI</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #0f172a;
+        color: #e2e8f0;
+        font-family: Segoe UI, system-ui, -apple-system, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .wrap {
+        text-align: center;
+      }
+      .logo {
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        background: linear-gradient(90deg, #38bdf8, #818cf8);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        margin-bottom: 6px;
+      }
+      .sub {
+        color: #94a3b8;
+        font-size: 14px;
+        margin-bottom: 28px;
+      }
+      .spinner {
+        width: 38px;
+        height: 38px;
+        margin: 0 auto;
+        border: 3px solid rgba(148, 163, 184, 0.25);
+        border-top-color: #38bdf8;
+        border-radius: 50%;
+        animation: spin 0.9s linear infinite;
+      }
+      .hint {
+        margin-top: 22px;
+        color: #64748b;
+        font-size: 12px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="logo">Smart Promo AI</div>
+      <div class="sub">Intelligence commerciale</div>
+      <div class="spinner"></div>
+      <div class="hint">Démarrage en cours…</div>
+    </div>
+  </body>
+</html>

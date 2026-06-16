@@ -62,6 +62,8 @@ export const api = {
   billing: () => request<BillingInfo>("/auth/billing"),
   changePassword: (currentPassword: string, newPassword: string) =>
     request<{ ok: true }>("/auth/change-password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) }),
+  resetDatabase: () =>
+    request<{ ok: true; deleted: Record<string, number> }>("/auth/reset-data", { method: "POST" }),
   stockReport: () => request<{ rows: StockReportRow[] }>("/stock-report"),
   downloadStockReport: async () => {
     const token = getToken();
